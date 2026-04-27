@@ -1,4 +1,4 @@
-package dev.sbs.simplifieddata.client.response;
+package api.simplified.github.response;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.AccessLevel;
@@ -16,10 +16,10 @@ import org.jetbrains.annotations.NotNull;
  * uses that as the parent for a follow-up commit in the Git Data API multi-file
  * write path.
  *
- * <p>Phase 6b ships this DTO as part of the dormant
- * {@link dev.sbs.simplifieddata.client.SkyBlockGitDataContract} surface - no
- * production code reads or writes it yet. The Phase 6b write path uses the
- * single-file Contents API. A future Phase 6e may switch to the Git Data API
+ * <p>Ships as part of the
+ * {@link api.simplified.github.GitHubGitDataContract} surface - no
+ * production code reads or writes it yet. Most callers use the
+ * single-file Contents API. A multi-file may switch to the Git Data API
  * so a single commit can span multiple files in one batch tick.
  *
  * @see <a href="https://docs.github.com/en/rest/git/refs?apiVersion=2022-11-28">GitHub Git refs</a>

@@ -1,4 +1,4 @@
-package dev.sbs.simplifieddata.client.exception;
+package api.simplified.github.exception;
 
 import com.google.gson.annotations.SerializedName;
 import dev.simplified.client.exception.ApiErrorResponse;
@@ -20,12 +20,12 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>This mirror implements {@link ApiErrorResponse} so that the framework's
  * {@link dev.simplified.client.exception.ApiException#getResponse()} accessor returns a usable
- * instance. The framework interface requires a single {@code getReason()} accessor; Phase 4b
+ * instance. The framework interface requires a single {@code getReason()} accessor; This class
  * maps {@code reason} to the parsed {@code message} field so GitHub's wording is preserved
  * verbatim.
  *
  * @see ApiErrorResponse
- * @see SkyBlockDataException
+ * @see GitHubApiException
  */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

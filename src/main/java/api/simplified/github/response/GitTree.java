@@ -1,4 +1,4 @@
-package dev.sbs.simplifieddata.client.response;
+package api.simplified.github.response;
 
 import com.google.gson.annotations.SerializedName;
 import dev.simplified.collection.ConcurrentList;
@@ -16,9 +16,9 @@ import org.jetbrains.annotations.Nullable;
  * snapshot of the repository; each {@link Entry} describes a single path
  * entry (blob or subtree) with its mode, type, and SHA.
  *
- * <p>Phase 6b ships this DTO as part of the dormant
- * {@link dev.sbs.simplifieddata.client.SkyBlockGitDataContract} surface - no
- * production code reads or writes it yet. The Phase 6e Git Data API write
+ * <p>Ships as part of the
+ * {@link api.simplified.github.GitHubGitDataContract} surface - no
+ * production code reads or writes it yet. The the Git Data API Git Data API write
  * path would read an existing tree, overlay new blob SHAs onto affected
  * entries, and {@code POST} a new tree with those entries plus the original
  * {@code base_tree} reference.
@@ -53,8 +53,8 @@ public final class GitTree {
      * A single entry in a git tree - either a file blob or a subtree.
      *
      * <p>Path is the entry name relative to its parent tree; subtrees have
-     * nested children reachable by fetching the entry's SHA as a tree. Phase 6e
-     * would build these via {@link dev.sbs.simplifieddata.client.request.CreateTreeRequest.TreeEntry}.
+     * nested children reachable by fetching the entry's SHA as a tree. the Git Data API
+     * would build these via {@link api.simplified.github.request.CreateTreeRequest.TreeEntry}.
      */
     @Getter
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

@@ -1,4 +1,4 @@
-package dev.sbs.simplifieddata.client.response;
+package api.simplified.github.response;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.AccessLevel;
@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
  * {@code GET /repos/{owner}/{repo}/contents/{path}} when the caller requests the
  * default {@code application/vnd.github+json} media type.
  *
- * <p>The critical field for the Phase 6b write path is {@link #sha}, which is the
+ * <p>The critical field for the write path is {@link #sha}, which is the
  * git <b>blob</b> SHA of the file at the branch tip. The write path uses this value
  * as the optimistic-concurrency token on the follow-up
  * {@code PUT /repos/{owner}/{repo}/contents/{path}} call: if another writer committed
@@ -24,12 +24,12 @@ import org.jetbrains.annotations.NotNull;
  * directly by application code, which is why the constructor is private under
  * {@link RequiredArgsConstructor}.
  *
- * <p>Only the fields consumed by the Phase 6b pipeline are declared; every other
+ * <p>Only the fields consumed by the consumer pipeline are declared; every other
  * field in the upstream JSON is silently ignored by Gson's reflective binder. The
  * {@link #content} field is base64-encoded (per GitHub's Contents API default
  * encoding) and callers decode it lazily if they need the body - typically
- * Phase 6b does not need it because the write path reads the current file body
- * via the existing read-path {@code SkyBlockDataContract.getFileContent}
+ * the consumer does not need it because the write path reads the current file body
+ * via the existing read-path {@code GitHubContentsContract.getFileContent}
  * (which uses {@code Accept: application/vnd.github.raw+json}) to avoid the
  * base64 round-trip.
  *

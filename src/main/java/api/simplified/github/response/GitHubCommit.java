@@ -1,4 +1,4 @@
-package dev.sbs.simplifieddata.client.response;
+package api.simplified.github.response;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Gson-bindable mirror of a single entry in the GitHub "List commits" response.
  *
- * <p>Only the fields consumed by the Phase 4c change-detection pipeline are declared; every
+ * <p>Only the fields consumed by the change-detection pipeline are declared; every
  * other field in the upstream JSON is silently ignored by Gson's reflective binder. The top-level
  * {@link #sha} is the branch-tip commit id the poller compares against
  * {@code ExternalAssetState.commitSha}; {@link CommitDetail#committer} carries the ISO-8601
@@ -38,7 +38,7 @@ public final class GitHubCommit {
     /**
      * Nested {@code commit} object inside the top-level commit response.
      *
-     * <p>Narrowed to the two fields Phase 4c cares about - the commit message for log output
+     * <p>Narrowed to the two fields the consumer cares about - the commit message for log output
      * and the committer actor for the ISO-8601 timestamp.
      */
     @Getter

@@ -1,6 +1,6 @@
-package dev.sbs.simplifieddata.client.exception;
+package api.simplified.github.exception;
 
-import dev.sbs.simplifieddata.DataApi;
+import com.google.gson.Gson;
 import dev.simplified.client.exception.ApiException;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -8,15 +8,14 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Optional;
 
 /**
- * Thrown when an HTTP request to the GitHub REST API for the {@code skyblock-data} repo
- * fails.
+ * Thrown when an HTTP request to the GitHub REST API fails.
  *
  * <p>Extends the framework {@link ApiException}, which already implements
  * {@link dev.simplified.client.response.Response} so the full HTTP context (status, headers,
  * body, network details, original request) is available on the exception instance. On top of
- * that the Phase 4b subclass parses the response body into a {@link GitHubErrorResponse} via
- * the shared {@link DataApi#getGson()} instance so callers can reach the GitHub
- * {@code message} and {@code documentation_url} fields without re-parsing.
+ * that this class parses the response body into a {@link GitHubErrorResponse} via the supplied
+ * {@link Gson} so callers can reach the GitHub {@code message} and {@code documentation_url}
+ * fields without re-parsing.
  *
  * <p>Three helpers disambiguate the common 403/429 confusion surface on the GitHub API:
  * <ul>
@@ -29,39 +28,41 @@ import java.util.Optional;
  *
  * <p>A 304 {@code Not Modified} never reaches this class - the framework's
  * {@code InternalErrorDecoder} short-circuits 3xx responses into
- * {@link dev.simplified.client.exception.NotModifiedException} before the per-client
- * {@code ClientErrorDecoder} runs, and the Phase 5.5.1 auto-ETag pipeline transparently
- * serves cached bodies on 304 so callers rarely see the exception at all.
+ * {@link dev.simplified.client.exception.NotModifiedException} before per-client error decoders
+ * run.
  *
- * <p>This subclass deliberately does NOT follow the five-constructor pattern from the global
- * {@code CLAUDE.md} exception style guide. The base {@link ApiException} constructor surface
- * only exposes {@code (String methodKey, feign.Response response, String name)} and
- * {@code (FeignException, feign.Response, String)}, so matching the five-constructor pattern
- * would require adding protected constructors to the framework base class - that edit is out
- * of scope for Phase 4b. Every existing subclass in {@code minecraft-api}
- * ({@code HypixelApiException}, {@code SbsApiException}, {@code MojangApiException}) uses the
- * same single-constructor form.
+ * <p>This subclass deliberately does NOT follow the five-constructor pattern from the project
+ * exception style guide because the {@link ApiException} base only exposes
+ * {@code (String methodKey, feign.Response response, String name)} and
+ * {@code (FeignException, feign.Response, String)}. Every existing subclass in {@code
+ * minecraft-api} ({@code HypixelApiException}, {@code SbsApiException}, {@code MojangApiException})
+ * uses the same single-constructor form.
  *
  * @see GitHubErrorResponse
  * @see ApiException
  */
 @Getter
-public final class SkyBlockDataException extends ApiException {
+public final class GitHubApiException extends ApiException {
 
     /** The parsed GitHub error body. */
     private final @NotNull GitHubErrorResponse githubResponse;
 
     /**
-     * Constructs a new {@code SkyBlockDataException} from the Feign method key and the raw
-     * response that triggered the failure.
+     * Constructs a new {@code GitHubApiException} from the Feign method key, the raw response
+     * that triggered the failure, and the {@link Gson} used to parse the response body.
      *
      * @param methodKey the Feign method key identifying the failing contract method
      * @param response the raw Feign response carrying status, headers, and body
+     * @param gson the Gson instance used to deserialize the GitHub error envelope
      */
-    public SkyBlockDataException(@NotNull String methodKey, @NotNull feign.Response response) {
-        super(methodKey, response, "SkyBlockData");
+    public GitHubApiException(
+        @NotNull String methodKey,
+        @NotNull feign.Response response,
+        @NotNull Gson gson
+    ) {
+        super(methodKey, response, "GitHub");
         this.githubResponse = this.getBody()
-            .map(json -> Optional.ofNullable(super.fromJson(DataApi.getGson(), json, GitHubErrorResponse.class))
+            .map(json -> Optional.ofNullable(super.fromJson(gson, json, GitHubErrorResponse.class))
                 .orElseGet(GitHubErrorResponse::unknown))
             .orElseGet(GitHubErrorResponse::unknown);
     }

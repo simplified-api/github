@@ -1,4 +1,4 @@
-package dev.sbs.simplifieddata.client.request;
+package api.simplified.github.request;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.AccessLevel;
@@ -8,9 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Request body for the dormant Git Data API
+ * Request body for the Git Data API
  * {@code POST /repos/{owner}/{repo}/git/blobs} endpoint on
- * {@link dev.sbs.simplifieddata.client.SkyBlockGitDataContract}.
+ * {@link api.simplified.github.GitHubGitDataContract}.
  *
  * <p>A blob is raw file content: no path, no directory metadata, just bytes
  * addressed by the SHA-1 of {@code blob <size>\0<content>}. The Git Data API
@@ -19,10 +19,10 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>{@link #encoding} is either {@code "utf-8"} (the content field is sent
  * verbatim UTF-8 text) or {@code "base64"} (the content field is a base64
- * string of the raw bytes). Phase 6e would use {@code "base64"} for all
+ * string of the raw bytes). A Git Data API multi-file commit path would use {@code "base64"} for all
  * blobs to avoid character-encoding surprises on binary-ish JSON.
  *
- * <p>No production caller in Phase 6b. Shipped with the dormant contract
+ * <p>No production caller. Shipped alongside the Git Data API surface
  * surface.
  *
  * @see <a href="https://docs.github.com/en/rest/git/blobs?apiVersion=2022-11-28#create-a-blob">

@@ -1,4 +1,4 @@
-package dev.sbs.simplifieddata.client.request;
+package api.simplified.github.request;
 
 import com.google.gson.annotations.SerializedName;
 import dev.simplified.collection.ConcurrentList;
@@ -10,17 +10,17 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Request body for the dormant Git Data API
+ * Request body for the Git Data API
  * {@code POST /repos/{owner}/{repo}/git/trees} endpoint on
- * {@link dev.sbs.simplifieddata.client.SkyBlockGitDataContract}.
+ * {@link api.simplified.github.GitHubGitDataContract}.
  *
  * <p>A tree is a directory snapshot composed of {@link TreeEntry} entries.
  * The optional {@link #baseTree} reference overlays new entries on top of an
- * existing tree - the Phase 6e write path would set {@code base_tree} to the
+ * existing tree - the Git Data API write path would set {@code base_tree} to the
  * current master branch's tree SHA and include only the affected files in
  * {@link #tree}, letting the unaffected entries inherit from the base.
  *
- * <p>No production caller in Phase 6b. Shipped with the dormant contract
+ * <p>No production caller. Shipped alongside the Git Data API surface
  * surface.
  *
  * @see <a href="https://docs.github.com/en/rest/git/trees?apiVersion=2022-11-28#create-a-tree">

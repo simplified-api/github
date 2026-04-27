@@ -1,10 +1,10 @@
-package dev.sbs.simplifieddata.client;
+package api.simplified.github;
 
+import api.simplified.github.request.PutContentRequest;
+import api.simplified.github.response.GitHubContentEnvelope;
+import api.simplified.github.response.GitHubPutResponse;
 import com.google.gson.Gson;
-import dev.sbs.simplifieddata.DataApi;
-import dev.sbs.simplifieddata.client.request.PutContentRequest;
-import dev.sbs.simplifieddata.client.response.GitHubContentEnvelope;
-import dev.sbs.simplifieddata.client.response.GitHubPutResponse;
+import dev.simplified.gson.GsonSettings;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,18 +13,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 /**
- * Gson round-trip tests for the Phase 6b Contents API write-path DTOs. Covers
- * {@link GitHubContentEnvelope}, {@link PutContentRequest}, and
- * {@link GitHubPutResponse}.
+ * Gson round-trip tests for the Contents API write-path DTOs. Covers
+ * {@link GitHubContentEnvelope}, {@link PutContentRequest}, and {@link GitHubPutResponse}.
  *
  * <p>Every test uses canned JSON fixtures lifted from GitHub's
- * <a href="https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28">
- * Contents API documentation</a>, narrowed to the fields Phase 6b consumes.
- * No network I/O; no Feign proxy construction; no Spring context.
+ * <a href="https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28">Contents API
+ * documentation</a>. No network I/O; no Feign proxy construction; no Spring context.
  */
 class ContentsApiDtoRoundTripTest {
 
-    private static final @NotNull Gson GSON = DataApi.getGson();
+    private static final @NotNull Gson GSON = GsonSettings.defaults().create();
 
     @Test
     @DisplayName("GitHubContentEnvelope deserializes all declared fields from a narrowed envelope fixture")

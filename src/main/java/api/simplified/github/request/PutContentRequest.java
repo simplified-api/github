@@ -1,4 +1,4 @@
-package dev.sbs.simplifieddata.client.request;
+package api.simplified.github.request;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.AccessLevel;
@@ -9,23 +9,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Request body for the Phase 6b {@code PUT /repos/{owner}/{repo}/contents/{path}}
- * call on {@link dev.sbs.simplifieddata.client.SkyBlockDataWriteContract}.
+ * Request body for the {@code PUT /repos/{owner}/{repo}/contents/{path}} call on
+ * {@link api.simplified.github.GitHubContentsWriteContract}.
  *
- * <p>Serialized to JSON by Feign's {@code GsonEncoder} on the outbound request.
- * Every field listed here is a literal GitHub Contents API field - no
- * framework-specific metadata is added. {@link #sha} is the
- * optimistic-concurrency token captured from a prior
- * {@link dev.sbs.simplifieddata.client.response.GitHubContentEnvelope#getSha()
- * content envelope} fetch; omitting it turns the PUT into an unconditional
- * upsert and is explicitly avoided by the Phase 6b path.
+ * <p>Serialized to JSON by Feign's {@code GsonEncoder} on the outbound request. Every field
+ * listed here is a literal GitHub Contents API field - no framework-specific metadata is added.
+ * {@link #sha} is the optimistic-concurrency token captured from a prior
+ * {@link api.simplified.github.response.GitHubContentEnvelope#getSha() content envelope}
+ * fetch; omitting it turns the PUT into an unconditional upsert.
  *
- * <p>Instances are built via Lombok's {@code @Builder} to keep call sites tidy
- * at the {@code WritableRemoteJsonSource.commitBatch()} site where the content
- * bytes are freshly base64-encoded for every PUT. The {@link #branch} and
- * {@link #committer} fields are optional per GitHub's API and default to
- * {@code null} here - omitted from the serialized payload by Gson's default
- * behavior.
+ * <p>Instances are built via Lombok's {@code @Builder}. The {@link #branch} and
+ * {@link #committer} fields are optional per GitHub's API and default to {@code null} here -
+ * omitted from the serialized payload by Gson's default behavior.
  *
  * @see <a href="https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-or-update-file-contents">
  *      GitHub create or update file contents</a>
@@ -60,9 +55,9 @@ public final class PutContentRequest {
     private final @Nullable Committer committer;
 
     /**
-     * Nested committer identity block on a {@link PutContentRequest}. Carries the
-     * name and email displayed in the resulting git commit. Phase 6b omits this by
-     * default and lets GitHub fall back to the authenticated PAT user.
+     * Nested committer identity block on a {@link PutContentRequest}. Carries the name and
+     * email displayed in the resulting git commit. Defaults to the authenticated PAT user
+     * when omitted.
      */
     @Getter
     @Builder

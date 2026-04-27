@@ -1,4 +1,4 @@
-package dev.sbs.simplifieddata.client.request;
+package api.simplified.github.request;
 
 import com.google.gson.annotations.SerializedName;
 import dev.simplified.collection.ConcurrentList;
@@ -10,15 +10,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Request body for the dormant Git Data API
+ * Request body for the Git Data API
  * {@code POST /repos/{owner}/{repo}/git/commits} endpoint on
- * {@link dev.sbs.simplifieddata.client.SkyBlockGitDataContract}.
+ * {@link api.simplified.github.GitHubGitDataContract}.
  *
  * <p>Creates a new commit object pointing at the given tree, with the
  * specified parent commits and commit message. No ref is updated - a separate
  * {@code updateRef} call moves the branch pointer to the new commit.
  *
- * <p>No production caller in Phase 6b. Shipped with the dormant contract
+ * <p>No production caller. Shipped alongside the Git Data API surface
  * surface.
  *
  * @see <a href="https://docs.github.com/en/rest/git/commits?apiVersion=2022-11-28#create-a-commit">
@@ -54,7 +54,7 @@ public final class CreateCommitRequest {
 
     /**
      * Author/committer identity block. Matches the shape of
-     * {@link dev.sbs.simplifieddata.client.response.GitCommit.Actor} but lives
+     * {@link api.simplified.github.response.GitCommit.Actor} but lives
      * on the request side.
      */
     @Getter

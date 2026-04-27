@@ -1,16 +1,16 @@
-package dev.sbs.simplifieddata.client;
+package api.simplified.github;
 
+import api.simplified.github.request.CreateBlobRequest;
+import api.simplified.github.request.CreateCommitRequest;
+import api.simplified.github.request.CreateTreeRequest;
+import api.simplified.github.request.UpdateRefRequest;
+import api.simplified.github.response.GitBlob;
+import api.simplified.github.response.GitCommit;
+import api.simplified.github.response.GitRef;
+import api.simplified.github.response.GitTree;
 import com.google.gson.Gson;
-import dev.sbs.simplifieddata.DataApi;
-import dev.sbs.simplifieddata.client.request.CreateBlobRequest;
-import dev.sbs.simplifieddata.client.request.CreateCommitRequest;
-import dev.sbs.simplifieddata.client.request.CreateTreeRequest;
-import dev.sbs.simplifieddata.client.request.UpdateRefRequest;
-import dev.sbs.simplifieddata.client.response.GitBlob;
-import dev.sbs.simplifieddata.client.response.GitCommit;
-import dev.sbs.simplifieddata.client.response.GitRef;
-import dev.sbs.simplifieddata.client.response.GitTree;
 import dev.simplified.collection.Concurrent;
+import dev.simplified.gson.GsonSettings;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,20 +19,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 /**
- * Gson round-trip tests for the Phase 6b dormant Git Data API surface.
- *
- * <p>Every DTO shipped as part of {@link SkyBlockGitDataContract} is covered
- * here. No production path reads or writes these types in Phase 6b, but the
- * round-trip suite protects against silent schema drift if a future Phase 6e
- * follow-up activates the Git Data API write path.
+ * Gson round-trip tests for the {@link GitHubGitDataContract} DTO surface.
  *
  * <p>Fixtures are narrowed versions of the
- * <a href="https://docs.github.com/en/rest/git?apiVersion=2022-11-28">
- * official GitHub Git Database API documentation</a> responses.
+ * <a href="https://docs.github.com/en/rest/git?apiVersion=2022-11-28">official GitHub Git
+ * Database API documentation</a> responses. The round-trip suite protects against silent
+ * schema drift in DTOs that are not yet exercised by a production path.
  */
 class GitDataDtoRoundTripTest {
 
-    private static final @NotNull Gson GSON = DataApi.getGson();
+    private static final @NotNull Gson GSON = GsonSettings.defaults().create();
 
     @Test
     @DisplayName("GitRef deserializes a branch ref with embedded object details")

@@ -1,4 +1,4 @@
-package dev.sbs.simplifieddata.client.response;
+package api.simplified.github.response;
 
 import com.google.gson.annotations.SerializedName;
 import dev.simplified.collection.ConcurrentList;
@@ -17,8 +17,8 @@ import org.jetbrains.annotations.Nullable;
  * because the Git Data API surfaces raw git objects without the repo and
  * committer-HTML additions the Commits API adds.
  *
- * <p>Phase 6b ships this DTO as part of the dormant
- * {@link dev.sbs.simplifieddata.client.SkyBlockGitDataContract} surface - no
+ * <p>Ships as part of the
+ * {@link api.simplified.github.GitHubGitDataContract} surface - no
  * production code reads or writes it yet. Consumers fetch an existing commit
  * to obtain its tree SHA via {@link TreeRef#getSha()}, then use that as the
  * base tree for a follow-up {@code createTree} call.
@@ -58,7 +58,7 @@ public final class GitCommit {
 
     /**
      * Narrowed tree reference embedded in a {@link GitCommit}. Only the SHA is
-     * consumed by the dormant surface.
+     * consumed by this DTO surface.
      */
     @Getter
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

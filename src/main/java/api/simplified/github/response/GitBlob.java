@@ -1,4 +1,4 @@
-package dev.sbs.simplifieddata.client.response;
+package api.simplified.github.response;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.AccessLevel;
@@ -14,12 +14,12 @@ import org.jetbrains.annotations.Nullable;
  * raw-content git object that sits underneath a tree - file bytes with no
  * directory metadata. Creating a blob returns only the SHA and URL; the
  * content fields are populated only on the matching
- * {@code GET /git/blobs/{sha}} endpoint (which Phase 6e would not need since
+ * {@code GET /git/blobs/{sha}} endpoint (which A Git Data API multi-file commit path would not need since
  * the Contents API already covers file reads).
  *
- * <p>Phase 6b ships this DTO as part of the dormant
- * {@link dev.sbs.simplifieddata.client.SkyBlockGitDataContract} surface - no
- * production code reads or writes it yet. The Phase 6e Git Data API write
+ * <p>Ships as part of the
+ * {@link api.simplified.github.GitHubGitDataContract} surface - no
+ * production code reads or writes it yet. The the Git Data API Git Data API write
  * path would call {@code createBlob} for each affected file, collect the
  * returned SHAs, and pass them to a follow-up {@code createTree} call.
  *
