@@ -5,8 +5,6 @@ import dev.simplified.client.exception.ApiException;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Optional;
-
 /**
  * Thrown when an HTTP request to the GitHub REST API fails.
  *
@@ -61,10 +59,7 @@ public final class GitHubApiException extends ApiException {
         @NotNull Gson gson
     ) {
         super(methodKey, response, "GitHub");
-        this.githubResponse = this.getBody()
-            .map(json -> Optional.ofNullable(super.fromJson(gson, json, GitHubErrorResponse.class))
-                .orElseGet(GitHubErrorResponse::unknown))
-            .orElseGet(GitHubErrorResponse::unknown);
+        this.githubResponse = super.fromJson(gson, GitHubErrorResponse.class).orElseGet(GitHubErrorResponse::unknown);
     }
 
     /**
