@@ -79,23 +79,23 @@ class GitHubApiExceptionTest {
     }
 
     @Test
-    @DisplayName("getGithubResponse() falls back to Unknown sentinel on non-JSON body")
-    void getGithubResponseFallback() {
+    @DisplayName("getResponse() falls back to a fresh instance with field-default message on non-JSON body")
+    void getResponseFallback() {
         GitHubApiException ex = build(500, Map.of(), "<html>503 oops</html>");
 
-        assertThat(ex.getGithubResponse().getReason(), equalTo("Unknown (body missing or not JSON)"));
+        assertThat(ex.getResponse().getReason(), equalTo("Unknown (body missing or not JSON)"));
     }
 
     @Test
-    @DisplayName("getGithubResponse().getReason() returns the parsed message")
-    void getGithubResponseParsed() {
+    @DisplayName("getResponse().getReason() returns the parsed message")
+    void getResponseParsed() {
         GitHubApiException ex = build(
             404,
             Map.of(),
             "{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com\"}"
         );
 
-        assertThat(ex.getGithubResponse().getReason(), equalTo("Not Found"));
+        assertThat(ex.getResponse().getReason(), equalTo("Not Found"));
     }
 
     private static GitHubApiException build(int status, Map<String, List<String>> headers, String body) {
@@ -116,7 +116,7 @@ class GitHubApiExceptionTest {
             .headers(headerMap)
             .body(body, StandardCharsets.UTF_8)
             .build();
-        return new GitHubApiException("GET /test", response, GSON);
+        return new GitHubApiException(GSON, "GET /test", response);
     }
 
 }

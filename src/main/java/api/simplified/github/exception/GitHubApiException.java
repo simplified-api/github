@@ -2,16 +2,16 @@ package api.simplified.github.exception;
 
 import com.google.gson.Gson;
 import dev.simplified.client.exception.ApiException;
-import lombok.Getter;
+import dev.simplified.client.exception.JsonApiException;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Thrown when an HTTP request to the GitHub REST API fails.
  *
- * <p>Extends the framework {@link ApiException}, which already implements
+ * <p>Extends {@link JsonApiException}, which already implements
  * {@link dev.simplified.client.response.Response} so the full HTTP context (status, headers,
- * body, network details, original request) is available on the exception instance. On top of
- * that this class parses the response body into a {@link GitHubErrorResponse} via the supplied
+ * body, network details, original request) is available on the exception instance. The base
+ * class lazily decodes the response body into a {@link GitHubErrorResponse} via the supplied
  * {@link Gson} so callers can reach the GitHub {@code message} and {@code documentation_url}
  * fields without re-parsing.
  *
@@ -29,37 +29,32 @@ import org.jetbrains.annotations.NotNull;
  * {@link dev.simplified.client.exception.NotModifiedException} before per-client error decoders
  * run.
  *
- * <p>This subclass deliberately does NOT follow the five-constructor pattern from the project
- * exception style guide because the {@link ApiException} base only exposes
- * {@code (String methodKey, feign.Response response, String name)} and
- * {@code (FeignException, feign.Response, String)}. Every existing subclass in {@code
- * minecraft-api} ({@code HypixelApiException}, {@code SbsApiException}, {@code MojangApiException})
- * uses the same single-constructor form.
- *
  * @see GitHubErrorResponse
+ * @see JsonApiException
  * @see ApiException
  */
-@Getter
-public final class GitHubApiException extends ApiException {
-
-    /** The parsed GitHub error body. */
-    private final @NotNull GitHubErrorResponse githubResponse;
+public final class GitHubApiException extends JsonApiException {
 
     /**
-     * Constructs a new {@code GitHubApiException} from the Feign method key, the raw response
-     * that triggered the failure, and the {@link Gson} used to parse the response body.
+     * Constructs a new {@code GitHubApiException} from the {@link Gson} used to parse the response
+     * body, the Feign method key, and the raw response that triggered the failure.
      *
+     * @param gson the Gson instance used to deserialize the GitHub error envelope
      * @param methodKey the Feign method key identifying the failing contract method
      * @param response the raw Feign response carrying status, headers, and body
-     * @param gson the Gson instance used to deserialize the GitHub error envelope
      */
     public GitHubApiException(
+        @NotNull Gson gson,
         @NotNull String methodKey,
-        @NotNull feign.Response response,
-        @NotNull Gson gson
+        @NotNull feign.Response response
     ) {
         super(methodKey, response, "GitHub");
-        this.githubResponse = super.fromJson(gson, GitHubErrorResponse.class).orElseGet(GitHubErrorResponse::unknown);
+        this.resolve(gson, GitHubErrorResponse.class);
+    }
+
+    @Override
+    public @NotNull GitHubErrorResponse getResponse() {
+        return (GitHubErrorResponse) super.getResponse();
     }
 
     /**
@@ -84,7 +79,7 @@ public final class GitHubApiException extends ApiException {
             .map("0"::equals)
             .orElse(false);
 
-        boolean messageMatches = this.githubResponse.getReason().contains("API rate limit exceeded");
+        boolean messageMatches = this.getResponse().getReason().contains("API rate limit exceeded");
         return quotaZero && messageMatches;
     }
 
@@ -99,7 +94,7 @@ public final class GitHubApiException extends ApiException {
         if (code != 403 && code != 429)
             return false;
 
-        String reason = this.githubResponse.getReason();
+        String reason = this.getResponse().getReason();
         return reason.contains("secondary rate limit") || reason.contains("abuse detection");
     }
 

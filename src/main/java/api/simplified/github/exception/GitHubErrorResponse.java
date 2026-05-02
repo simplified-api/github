@@ -20,9 +20,13 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>This mirror implements {@link ApiErrorResponse} so that the framework's
  * {@link dev.simplified.client.exception.ApiException#getResponse()} accessor returns a usable
- * instance. The framework interface requires a single {@code getReason()} accessor; This class
+ * instance. The framework interface requires a single {@code getReason()} accessor; this class
  * maps {@code reason} to the parsed {@code message} field so GitHub's wording is preserved
  * verbatim.
+ *
+ * <p>Field initializers carry the fallback defaults used when the body is absent or
+ * unparseable - {@link dev.simplified.client.exception.JsonApiException} constructs a fresh
+ * instance reflectively in that case.
  *
  * @see ApiErrorResponse
  * @see GitHubApiException
@@ -33,7 +37,7 @@ public class GitHubErrorResponse implements ApiErrorResponse {
 
     /** The human-readable error message emitted by GitHub. */
     @SerializedName("message")
-    protected @NotNull String message = "Unknown";
+    protected @NotNull String message = "Unknown (body missing or not JSON)";
 
     /** The URL to GitHub's documentation for this error class. May be empty. */
     @SerializedName("documentation_url")
@@ -47,31 +51,6 @@ public class GitHubErrorResponse implements ApiErrorResponse {
     @Override
     public @NotNull String getReason() {
         return this.message;
-    }
-
-    /**
-     * Returns a sentinel instance for cases where the error body is missing or not valid JSON.
-     *
-     * @return a placeholder with the message {@code "Unknown (body missing or not JSON)"}
-     */
-    public static @NotNull GitHubErrorResponse unknown() {
-        Unknown sentinel = new Unknown();
-        sentinel.message = "Unknown (body missing or not JSON)";
-        return sentinel;
-    }
-
-    /**
-     * Trivial subtype used as the sentinel when no error body is available.
-     *
-     * <p>Mirrors the {@code HypixelErrorResponse.Unknown} pattern for consistency.
-     */
-    public static final class Unknown extends GitHubErrorResponse {
-
-        /** Package-private - construct via {@link GitHubErrorResponse#unknown()}. */
-        Unknown() {
-            super();
-        }
-
     }
 
 }
