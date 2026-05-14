@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import dev.simplified.client.exception.ErrorContext;
 import dev.simplified.client.request.HttpMethod;
 import dev.simplified.client.response.HttpStatus;
-import dev.simplified.client.response.NetworkDetails;
 import dev.simplified.gson.GsonSettings;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -104,13 +103,12 @@ class GitHubApiExceptionTest {
     }
 
     private static GitHubApiException build(int status, Map<String, List<String>> headers, String body) {
-        Map<String, Collection<String>> headerMap = new HashMap<>();
-        headers.forEach(headerMap::put);
+        Map<String, Collection<String>> headerMap = new HashMap<>(headers);
         ErrorContext context = new ErrorContext(
             HttpStatus.of(status),
-            NetworkDetails.empty(),
             HttpMethod.GET,
             "https://api.github.com/repos/skyblock-simplified/skyblock-data/contents/data/v1/index.json",
+            headerMap,
             headerMap,
             body.getBytes(StandardCharsets.UTF_8)
         );
