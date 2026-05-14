@@ -1,6 +1,10 @@
 package api.simplified.github.exception;
 
 import com.google.gson.Gson;
+import dev.simplified.client.exception.ErrorContext;
+import dev.simplified.client.request.HttpMethod;
+import dev.simplified.client.response.HttpStatus;
+import dev.simplified.client.response.NetworkDetails;
 import dev.simplified.gson.GsonSettings;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,8 +22,9 @@ import static org.hamcrest.Matchers.is;
 /**
  * Unit tests for the 403/429 disambiguation helpers on {@link GitHubApiException}.
  *
- * <p>Every test constructs a {@link feign.Response} with hand-crafted status + headers + body
- * and verifies the helper methods return the correct classification. No network I/O.
+ * <p>Every test constructs a primitive {@link ErrorContext} with hand-crafted status, headers,
+ * and body bytes and verifies the helper methods return the correct classification. No
+ * network I/O and no {@code feign.Response} fixture is required.
  */
 class GitHubApiExceptionTest {
 
@@ -99,24 +104,17 @@ class GitHubApiExceptionTest {
     }
 
     private static GitHubApiException build(int status, Map<String, List<String>> headers, String body) {
-        feign.Request request = feign.Request.create(
-            feign.Request.HttpMethod.GET,
-            "https://api.github.com/repos/skyblock-simplified/skyblock-data/contents/data/v1/index.json",
-            Map.of(),
-            feign.Request.Body.empty(),
-            new feign.RequestTemplate()
-        );
-        // feign.Response.Builder.headers expects Map<String, Collection<String>>; List<String> is a Collection<String>.
         Map<String, Collection<String>> headerMap = new HashMap<>();
         headers.forEach(headerMap::put);
-        feign.Response response = feign.Response.builder()
-            .status(status)
-            .reason("test")
-            .request(request)
-            .headers(headerMap)
-            .body(body, StandardCharsets.UTF_8)
-            .build();
-        return new GitHubApiException(GSON, "GET /test", response);
+        ErrorContext context = new ErrorContext(
+            HttpStatus.of(status),
+            NetworkDetails.empty(),
+            HttpMethod.GET,
+            "https://api.github.com/repos/skyblock-simplified/skyblock-data/contents/data/v1/index.json",
+            headerMap,
+            body.getBytes(StandardCharsets.UTF_8)
+        );
+        return new GitHubApiException(GSON, context);
     }
 
 }

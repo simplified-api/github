@@ -2,6 +2,7 @@ package api.simplified.github.exception;
 
 import com.google.gson.Gson;
 import dev.simplified.client.exception.ApiException;
+import dev.simplified.client.exception.ErrorContext;
 import dev.simplified.client.exception.JsonApiException;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,19 +37,14 @@ import org.jetbrains.annotations.NotNull;
 public final class GitHubApiException extends JsonApiException {
 
     /**
-     * Constructs a new {@code GitHubApiException} from the {@link Gson} used to parse the response
-     * body, the Feign method key, and the raw response that triggered the failure.
+     * Constructs a new {@code GitHubApiException} from the {@link Gson} used to parse the
+     * response body and the primitive HTTP context that triggered the failure.
      *
      * @param gson the Gson instance used to deserialize the GitHub error envelope
-     * @param methodKey the Feign method key identifying the failing contract method
-     * @param response the raw Feign response carrying status, headers, and body
+     * @param context the primitive HTTP context carrying status, headers, body bytes, and request metadata
      */
-    public GitHubApiException(
-        @NotNull Gson gson,
-        @NotNull String methodKey,
-        @NotNull feign.Response response
-    ) {
-        super(methodKey, response, "GitHub");
+    public GitHubApiException(@NotNull Gson gson, @NotNull ErrorContext context) {
+        super(context, "GitHub");
         this.resolve(gson, GitHubErrorResponse.class);
     }
 
