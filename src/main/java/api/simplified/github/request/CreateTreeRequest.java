@@ -39,7 +39,9 @@ public final class CreateTreeRequest {
     @SerializedName("base_tree")
     private final @Nullable String baseTree;
 
-    /** The new tree entries. */
+    /**
+     * The new tree entries.
+     */
     @SerializedName("tree")
     private final @NotNull ConcurrentList<TreeEntry> tree;
 
@@ -53,7 +55,9 @@ public final class CreateTreeRequest {
     @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
     public static final class TreeEntry {
 
-        /** The entry path relative to the tree root. */
+        /**
+         * The entry path relative to the tree root.
+         */
         @SerializedName("path")
         private final @NotNull String path;
 
@@ -64,7 +68,9 @@ public final class CreateTreeRequest {
         @SerializedName("mode")
         private final @NotNull String mode;
 
-        /** The entry type: {@code "blob"}, {@code "tree"}, or {@code "commit"}. */
+        /**
+         * The entry type: {@code "blob"}, {@code "tree"}, or {@code "commit"}.
+         */
         @SerializedName("type")
         private final @NotNull String type;
 

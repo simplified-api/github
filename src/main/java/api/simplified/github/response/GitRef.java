@@ -28,15 +28,21 @@ import org.jetbrains.annotations.NotNull;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GitRef {
 
-    /** The fully qualified ref name, e.g. {@code "refs/heads/master"}. */
+    /**
+     * The fully qualified ref name, e.g. {@code "refs/heads/master"}.
+     */
     @SerializedName("ref")
     private final @NotNull String ref;
 
-    /** The GitHub API URL for this ref. */
+    /**
+     * The GitHub API URL for this ref.
+     */
     @SerializedName("url")
     private final @NotNull String url;
 
-    /** The target object the ref points at. */
+    /**
+     * The target object the ref points at.
+     */
     @SerializedName("object")
     private final @NotNull Object object;
 
@@ -49,15 +55,21 @@ public final class GitRef {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class Object {
 
-        /** The object SHA - for a branch ref this is the current commit SHA at the tip. */
+        /**
+         * The object SHA - for a branch ref this is the current commit SHA at the tip.
+         */
         @SerializedName("sha")
         private final @NotNull String sha;
 
-        /** The object type, typically {@code "commit"} for branch refs. */
+        /**
+         * The object type, typically {@code "commit"} for branch refs.
+         */
         @SerializedName("type")
         private final @NotNull String type;
 
-        /** The GitHub API URL pointing at the target object. */
+        /**
+         * The GitHub API URL pointing at the target object.
+         */
         @SerializedName("url")
         private final @NotNull String url;
 

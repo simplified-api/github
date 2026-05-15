@@ -1,6 +1,8 @@
 package api.simplified.github.response;
 
+import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
+import dev.simplified.client.Client;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +21,8 @@ import org.jetbrains.annotations.NotNull;
  * {@code 422} (historically documented as {@code 409 Conflict}), mapped by the
  * framework to {@code PreconditionFailedException}.
  *
- * <p>Instances are produced by {@link com.google.gson.Gson#fromJson} inside the
- * {@link dev.simplified.client.Client} response decoder pipeline - never constructed
+ * <p>Instances are produced by {@link Gson#fromJson} inside the
+ * {@link Client} response decoder pipeline - never constructed
  * directly by application code, which is why the constructor is private under
  * {@link RequiredArgsConstructor}.
  *
@@ -40,11 +42,15 @@ import org.jetbrains.annotations.NotNull;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GitHubContentEnvelope {
 
-    /** The file name (without directories). */
+    /**
+     * The file name (without directories).
+     */
     @SerializedName("name")
     private final @NotNull String name;
 
-    /** The full repo-root-relative path of the file. */
+    /**
+     * The full repo-root-relative path of the file.
+     */
     @SerializedName("path")
     private final @NotNull String path;
 
@@ -56,7 +62,9 @@ public final class GitHubContentEnvelope {
     @SerializedName("sha")
     private final @NotNull String sha;
 
-    /** The file size in bytes, as reported by the envelope. */
+    /**
+     * The file size in bytes, as reported by the envelope.
+     */
     @SerializedName("size")
     private final long size;
 

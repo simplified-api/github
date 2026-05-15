@@ -29,11 +29,15 @@ import org.jetbrains.annotations.Nullable;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GitBlob {
 
-    /** The blob SHA. */
+    /**
+     * The blob SHA.
+     */
     @SerializedName("sha")
     private final @NotNull String sha;
 
-    /** The GitHub API URL for the blob. */
+    /**
+     * The GitHub API URL for the blob.
+     */
     @SerializedName("url")
     private final @NotNull String url;
 

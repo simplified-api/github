@@ -30,11 +30,15 @@ import org.jetbrains.annotations.Nullable;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class PutContentRequest {
 
-    /** The commit message body written to the git log. */
+    /**
+     * The commit message body written to the git log.
+     */
     @SerializedName("message")
     private final @NotNull String message;
 
-    /** The new file content, base64-encoded per GitHub's Contents API convention. */
+    /**
+     * The new file content, base64-encoded per GitHub's Contents API convention.
+     */
     @SerializedName("content")
     private final @NotNull String content;
 
@@ -46,11 +50,15 @@ public final class PutContentRequest {
     @SerializedName("sha")
     private final @NotNull String sha;
 
-    /** Optional target branch name; defaults to the repo default branch when omitted. */
+    /**
+     * Optional target branch name; defaults to the repo default branch when omitted.
+     */
     @SerializedName("branch")
     private final @Nullable String branch;
 
-    /** Optional committer metadata; defaults to the authenticated user when omitted. */
+    /**
+     * Optional committer metadata; defaults to the authenticated user when omitted.
+     */
     @SerializedName("committer")
     private final @Nullable Committer committer;
 
@@ -64,11 +72,15 @@ public final class PutContentRequest {
     @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
     public static final class Committer {
 
-        /** The display name attached to the commit author field. */
+        /**
+         * The display name attached to the commit author field.
+         */
         @SerializedName("name")
         private final @NotNull String name;
 
-        /** The email address attached to the commit author field. */
+        /**
+         * The email address attached to the commit author field.
+         */
         @SerializedName("email")
         private final @NotNull String email;
 

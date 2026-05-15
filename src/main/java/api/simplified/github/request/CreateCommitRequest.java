@@ -29,11 +29,15 @@ import org.jetbrains.annotations.Nullable;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class CreateCommitRequest {
 
-    /** The commit message. */
+    /**
+     * The commit message.
+     */
     @SerializedName("message")
     private final @NotNull String message;
 
-    /** The SHA of the tree the commit should point at. */
+    /**
+     * The SHA of the tree the commit should point at.
+     */
     @SerializedName("tree")
     private final @NotNull String tree;
 
@@ -44,11 +48,15 @@ public final class CreateCommitRequest {
     @SerializedName("parents")
     private final @NotNull ConcurrentList<String> parents;
 
-    /** Optional author actor. When null, GitHub populates it from the authenticated PAT user. */
+    /**
+     * Optional author actor. When null, GitHub populates it from the authenticated PAT user.
+     */
     @SerializedName("author")
     private final @Nullable Actor author;
 
-    /** Optional committer actor. When null, GitHub populates it from the authenticated PAT user. */
+    /**
+     * Optional committer actor. When null, GitHub populates it from the authenticated PAT user.
+     */
     @SerializedName("committer")
     private final @Nullable Actor committer;
 
@@ -62,15 +70,21 @@ public final class CreateCommitRequest {
     @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
     public static final class Actor {
 
-        /** The display name. */
+        /**
+         * The display name.
+         */
         @SerializedName("name")
         private final @NotNull String name;
 
-        /** The email address. */
+        /**
+         * The email address.
+         */
         @SerializedName("email")
         private final @NotNull String email;
 
-        /** Optional ISO-8601 timestamp. When null, GitHub uses the current server time. */
+        /**
+         * Optional ISO-8601 timestamp. When null, GitHub uses the current server time.
+         */
         @SerializedName("date")
         private final @Nullable String date;
 

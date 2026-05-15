@@ -27,11 +27,15 @@ import org.jetbrains.annotations.NotNull;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GitHubCommit {
 
-    /** The commit SHA at the branch tip. */
+    /**
+     * The commit SHA at the branch tip.
+     */
     @SerializedName("sha")
     private final @NotNull String sha;
 
-    /** The nested {@code commit} object carrying author and committer metadata. */
+    /**
+     * The nested {@code commit} object carrying author and committer metadata.
+     */
     @SerializedName("commit")
     private final @NotNull CommitDetail commit;
 
@@ -45,11 +49,15 @@ public final class GitHubCommit {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class CommitDetail {
 
-        /** The commit message body as produced by the author. */
+        /**
+         * The commit message body as produced by the author.
+         */
         @SerializedName("message")
         private final @NotNull String message;
 
-        /** The committer actor carrying name, email, and ISO-8601 date. */
+        /**
+         * The committer actor carrying name, email, and ISO-8601 date.
+         */
         @SerializedName("committer")
         private final @NotNull Actor committer;
 
@@ -65,11 +73,15 @@ public final class GitHubCommit {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class Actor {
 
-        /** The display name of the actor. */
+        /**
+         * The display name of the actor.
+         */
         @SerializedName("name")
         private final @NotNull String name;
 
-        /** The ISO-8601 UTC timestamp at which the commit was authored or committed. */
+        /**
+         * The ISO-8601 UTC timestamp at which the commit was authored or committed.
+         */
         @SerializedName("date")
         private final @NotNull String date;
 

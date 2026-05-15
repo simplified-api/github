@@ -4,13 +4,15 @@ import com.google.gson.Gson;
 import dev.simplified.client.exception.ApiException;
 import dev.simplified.client.exception.ErrorContext;
 import dev.simplified.client.exception.JsonApiException;
+import dev.simplified.client.exception.NotModifiedException;
+import dev.simplified.client.response.Response;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Thrown when an HTTP request to the GitHub REST API fails.
  *
  * <p>Extends {@link JsonApiException}, which already implements
- * {@link dev.simplified.client.response.Response} so the full HTTP context (status, headers,
+ * {@link Response} so the full HTTP context (status, headers,
  * body, network details, original request) is available on the exception instance. The base
  * class lazily decodes the response body into a {@link GitHubErrorResponse} via the supplied
  * {@link Gson} so callers can reach the GitHub {@code message} and {@code documentation_url}
@@ -27,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>A 304 {@code Not Modified} never reaches this class - the framework's
  * {@code InternalErrorDecoder} short-circuits 3xx responses into
- * {@link dev.simplified.client.exception.NotModifiedException} before per-client error decoders
+ * {@link NotModifiedException} before per-client error decoders
  * run.
  *
  * @see GitHubErrorResponse

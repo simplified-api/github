@@ -2,6 +2,8 @@ package api.simplified.github.exception;
 
 import com.google.gson.annotations.SerializedName;
 import dev.simplified.client.exception.ApiErrorResponse;
+import dev.simplified.client.exception.ApiException;
+import dev.simplified.client.exception.JsonApiException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,13 +21,13 @@ import org.jetbrains.annotations.NotNull;
  * }</pre>
  *
  * <p>This mirror implements {@link ApiErrorResponse} so that the framework's
- * {@link dev.simplified.client.exception.ApiException#getResponse()} accessor returns a usable
+ * {@link ApiException#getResponse()} accessor returns a usable
  * instance. The framework interface requires a single {@code getReason()} accessor; this class
  * maps {@code reason} to the parsed {@code message} field so GitHub's wording is preserved
  * verbatim.
  *
  * <p>Field initializers carry the fallback defaults used when the body is absent or
- * unparseable - {@link dev.simplified.client.exception.JsonApiException} constructs a fresh
+ * unparseable - {@link JsonApiException} constructs a fresh
  * instance reflectively in that case.
  *
  * @see ApiErrorResponse
@@ -35,11 +37,15 @@ import org.jetbrains.annotations.NotNull;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class GitHubErrorResponse implements ApiErrorResponse {
 
-    /** The human-readable error message emitted by GitHub. */
+    /**
+     * The human-readable error message emitted by GitHub.
+     */
     @SerializedName("message")
     protected @NotNull String message = "Unknown (body missing or not JSON)";
 
-    /** The URL to GitHub's documentation for this error class. May be empty. */
+    /**
+     * The URL to GitHub's documentation for this error class. May be empty.
+     */
     @SerializedName("documentation_url")
     protected @NotNull String documentationUrl = "";
 

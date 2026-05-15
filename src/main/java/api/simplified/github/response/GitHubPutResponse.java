@@ -22,11 +22,15 @@ import org.jetbrains.annotations.NotNull;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GitHubPutResponse {
 
-    /** The nested {@code content} object carrying the new file blob SHA. */
+    /**
+     * The nested {@code content} object carrying the new file blob SHA.
+     */
     @SerializedName("content")
     private final @NotNull ContentRef content;
 
-    /** The nested {@code commit} object carrying the new git commit SHA. */
+    /**
+     * The nested {@code commit} object carrying the new git commit SHA.
+     */
     @SerializedName("commit")
     private final @NotNull CommitRef commit;
 
@@ -37,7 +41,9 @@ public final class GitHubPutResponse {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ContentRef {
 
-        /** The new blob SHA of the just-written file - the optimistic-concurrency token for the next PUT. */
+        /**
+         * The new blob SHA of the just-written file - the optimistic-concurrency token for the next PUT.
+         */
         @SerializedName("sha")
         private final @NotNull String sha;
 
@@ -50,7 +56,9 @@ public final class GitHubPutResponse {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class CommitRef {
 
-        /** The new git commit SHA produced by the PUT. */
+        /**
+         * The new git commit SHA produced by the PUT.
+         */
         @SerializedName("sha")
         private final @NotNull String sha;
 

@@ -33,11 +33,15 @@ import org.jetbrains.annotations.NotNull;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class CreateBlobRequest {
 
-    /** The blob content. Interpret per {@link #encoding}. */
+    /**
+     * The blob content. Interpret per {@link #encoding}.
+     */
     @SerializedName("content")
     private final @NotNull String content;
 
-    /** The encoding marker: {@code "utf-8"} or {@code "base64"}. */
+    /**
+     * The encoding marker: {@code "utf-8"} or {@code "base64"}.
+     */
     @SerializedName("encoding")
     private final @NotNull String encoding;
 

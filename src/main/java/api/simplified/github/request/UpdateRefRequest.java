@@ -29,7 +29,9 @@ import org.jetbrains.annotations.Nullable;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class UpdateRefRequest {
 
-    /** The new SHA the branch pointer should be moved to. */
+    /**
+     * The new SHA the branch pointer should be moved to.
+     */
     @SerializedName("sha")
     private final @NotNull String sha;
 

@@ -29,15 +29,21 @@ import org.jetbrains.annotations.Nullable;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GitTree {
 
-    /** The tree SHA. */
+    /**
+     * The tree SHA.
+     */
     @SerializedName("sha")
     private final @NotNull String sha;
 
-    /** The GitHub API URL for the tree. */
+    /**
+     * The GitHub API URL for the tree.
+     */
     @SerializedName("url")
     private final @NotNull String url;
 
-    /** The tree entries. An empty list is permitted on freshly created trees. */
+    /**
+     * The tree entries. An empty list is permitted on freshly created trees.
+     */
     @SerializedName("tree")
     private final @NotNull ConcurrentList<Entry> tree;
 
@@ -60,7 +66,9 @@ public final class GitTree {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class Entry {
 
-        /** The entry path relative to the parent tree. */
+        /**
+         * The entry path relative to the parent tree.
+         */
         @SerializedName("path")
         private final @NotNull String path;
 
@@ -71,19 +79,27 @@ public final class GitTree {
         @SerializedName("mode")
         private final @NotNull String mode;
 
-        /** The entry type, typically {@code "blob"} or {@code "tree"}. */
+        /**
+         * The entry type, typically {@code "blob"} or {@code "tree"}.
+         */
         @SerializedName("type")
         private final @NotNull String type;
 
-        /** The target object SHA. */
+        /**
+         * The target object SHA.
+         */
         @SerializedName("sha")
         private final @NotNull String sha;
 
-        /** The file size in bytes for blob entries. Null for tree entries. */
+        /**
+         * The file size in bytes for blob entries. Null for tree entries.
+         */
         @SerializedName("size")
         private final @Nullable Long size;
 
-        /** The GitHub API URL pointing at the target object. */
+        /**
+         * The GitHub API URL pointing at the target object.
+         */
         @SerializedName("url")
         private final @NotNull String url;
 

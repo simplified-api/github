@@ -29,15 +29,21 @@ import org.jetbrains.annotations.Nullable;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GitCommit {
 
-    /** The commit SHA. */
+    /**
+     * The commit SHA.
+     */
     @SerializedName("sha")
     private final @NotNull String sha;
 
-    /** The commit message body. */
+    /**
+     * The commit message body.
+     */
     @SerializedName("message")
     private final @NotNull String message;
 
-    /** Reference to the tree the commit points at. */
+    /**
+     * Reference to the tree the commit points at.
+     */
     @SerializedName("tree")
     private final @NotNull TreeRef tree;
 
@@ -48,11 +54,15 @@ public final class GitCommit {
     @SerializedName("parents")
     private final @NotNull ConcurrentList<ParentRef> parents;
 
-    /** Optional author actor. Nullable for commits synthesized by the Git Data API without an explicit author. */
+    /**
+     * Optional author actor. Nullable for commits synthesized by the Git Data API without an explicit author.
+     */
     @SerializedName("author")
     private final @Nullable Actor author;
 
-    /** Optional committer actor. Nullable for commits synthesized by the Git Data API without an explicit committer. */
+    /**
+     * Optional committer actor. Nullable for commits synthesized by the Git Data API without an explicit committer.
+     */
     @SerializedName("committer")
     private final @Nullable Actor committer;
 
@@ -64,11 +74,15 @@ public final class GitCommit {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class TreeRef {
 
-        /** The tree SHA the commit points at. */
+        /**
+         * The tree SHA the commit points at.
+         */
         @SerializedName("sha")
         private final @NotNull String sha;
 
-        /** The GitHub API URL for the referenced tree. */
+        /**
+         * The GitHub API URL for the referenced tree.
+         */
         @SerializedName("url")
         private final @NotNull String url;
 
@@ -81,11 +95,15 @@ public final class GitCommit {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ParentRef {
 
-        /** The parent commit SHA. */
+        /**
+         * The parent commit SHA.
+         */
         @SerializedName("sha")
         private final @NotNull String sha;
 
-        /** The GitHub API URL for the parent commit. */
+        /**
+         * The GitHub API URL for the parent commit.
+         */
         @SerializedName("url")
         private final @NotNull String url;
 
@@ -100,15 +118,21 @@ public final class GitCommit {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class Actor {
 
-        /** The display name of the actor. */
+        /**
+         * The display name of the actor.
+         */
         @SerializedName("name")
         private final @NotNull String name;
 
-        /** The email of the actor. */
+        /**
+         * The email of the actor.
+         */
         @SerializedName("email")
         private final @NotNull String email;
 
-        /** The ISO-8601 UTC timestamp. */
+        /**
+         * The ISO-8601 UTC timestamp.
+         */
         @SerializedName("date")
         private final @NotNull String date;
 
