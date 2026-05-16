@@ -36,7 +36,7 @@ dependencies {
 
     // Simplified Libraries (github.com/simplified-dev)
     api("com.github.simplified-dev:client") { version { strictly("c368e5f") } }
-    api("com.github.simplified-dev:gson-extras") { version { strictly("c494327") } }
+    api("com.github.simplified-dev:gson-extras") { version { strictly("26278a3") } }
 
     // Gson - DTO bindings + the Gson-bound exception body parsing
     api(libs.gson)
