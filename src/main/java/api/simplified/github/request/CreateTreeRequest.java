@@ -16,11 +16,11 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>A tree is a directory snapshot composed of {@link TreeEntry} entries.
  * The optional {@link #baseTree} reference overlays new entries on top of an
- * existing tree - the Git Data API write path would set {@code base_tree} to the
- * current master branch's tree SHA and include only the affected files in
+ * existing tree - a batched commit path sets {@code base_tree} to the current
+ * master branch's tree SHA and includes only the affected files in
  * {@link #tree}, letting the unaffected entries inherit from the base.
  *
- * <p>No production caller. Shipped alongside the Git Data API surface
+ * <p>No production caller. Shipped alongside the rest of the Git Data API
  * surface.
  *
  * @see <a href="https://docs.github.com/en/rest/git/trees?apiVersion=2022-11-28#create-a-tree">

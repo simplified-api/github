@@ -14,11 +14,11 @@ import org.jetbrains.annotations.Nullable;
  * {@link api.simplified.github.GitHubGitDataContract}.
  *
  * <p>Moves the target branch pointer to the supplied {@link #sha}, optionally
- * with {@link #force} set to {@code true} for non-fast-forward updates. The
- * the Git Data API multi-file write path would set {@code force} to {@code false} and
- * rely on GitHub's native fast-forward check to enforce optimistic concurrency.
+ * with {@link #force} set to {@code true} for non-fast-forward updates. A
+ * batched commit path leaves {@code force} at {@code false} and relies on
+ * GitHub's native fast-forward check to enforce optimistic concurrency.
  *
- * <p>No production caller. Shipped alongside the Git Data API surface
+ * <p>No production caller. Shipped alongside the rest of the Git Data API
  * surface.
  *
  * @see <a href="https://docs.github.com/en/rest/git/refs?apiVersion=2022-11-28#update-a-reference">

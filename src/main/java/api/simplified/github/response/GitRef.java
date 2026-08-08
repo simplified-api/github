@@ -13,14 +13,13 @@ import org.jetbrains.annotations.NotNull;
  * {@code PATCH /repos/{owner}/{repo}/git/refs/heads/{branch}} since the response
  * envelopes are structurally identical. The caller reads {@link Object#getSha()}
  * on {@link #object} to get the current commit SHA the branch points at, then
- * uses that as the parent for a follow-up commit in the Git Data API multi-file
- * write path.
+ * uses that as the parent for a follow-up commit in a batched write path.
  *
  * <p>Ships as part of the
  * {@link api.simplified.github.GitHubGitDataContract} surface - no
- * production code reads or writes it yet. Most callers use the
- * single-file Contents API. A multi-file may switch to the Git Data API
- * so a single commit can span multiple files in one batch tick.
+ * production code reads or writes it yet. Most callers use the single-file
+ * Contents API; a multi-file writer switches to the Git Data API so one commit
+ * can span every file in a batch.
  *
  * @see <a href="https://docs.github.com/en/rest/git/refs?apiVersion=2022-11-28">GitHub Git refs</a>
  */

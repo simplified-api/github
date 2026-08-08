@@ -18,9 +18,9 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>Ships as part of the
  * {@link api.simplified.github.GitHubGitDataContract} surface - no
- * production code reads or writes it yet. The the Git Data API Git Data API write
- * path would read an existing tree, overlay new blob SHAs onto affected
- * entries, and {@code POST} a new tree with those entries plus the original
+ * production code reads or writes it yet. A batched commit path reads an
+ * existing tree, overlays new blob SHAs onto the affected entries, and
+ * {@code POST}s a new tree carrying those entries plus the original
  * {@code base_tree} reference.
  *
  * @see <a href="https://docs.github.com/en/rest/git/trees?apiVersion=2022-11-28">GitHub Git trees</a>
@@ -59,8 +59,9 @@ public final class GitTree {
      * A single entry in a git tree - either a file blob or a subtree.
      *
      * <p>Path is the entry name relative to its parent tree; subtrees have
-     * nested children reachable by fetching the entry's SHA as a tree. the Git Data API
-     * would build these via {@link api.simplified.github.request.CreateTreeRequest.TreeEntry}.
+     * nested children reachable by fetching the entry's SHA as a tree. The
+     * write side of the same shape is
+     * {@link api.simplified.github.request.CreateTreeRequest.TreeEntry}.
      */
     @Getter
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

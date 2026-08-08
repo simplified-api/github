@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
  * specified parent commits and commit message. No ref is updated - a separate
  * {@code updateRef} call moves the branch pointer to the new commit.
  *
- * <p>No production caller. Shipped alongside the Git Data API surface
+ * <p>No production caller. Shipped alongside the rest of the Git Data API
  * surface.
  *
  * @see <a href="https://docs.github.com/en/rest/git/commits?apiVersion=2022-11-28#create-a-commit">

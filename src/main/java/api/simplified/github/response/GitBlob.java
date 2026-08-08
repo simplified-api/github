@@ -14,14 +14,14 @@ import org.jetbrains.annotations.Nullable;
  * raw-content git object that sits underneath a tree - file bytes with no
  * directory metadata. Creating a blob returns only the SHA and URL; the
  * content fields are populated only on the matching
- * {@code GET /git/blobs/{sha}} endpoint (which A Git Data API multi-file commit path would not need since
- * the Contents API already covers file reads).
+ * {@code GET /git/blobs/{sha}} endpoint, which a batched commit path does not need since the
+ * Contents API already covers file reads.
  *
  * <p>Ships as part of the
  * {@link api.simplified.github.GitHubGitDataContract} surface - no
- * production code reads or writes it yet. The the Git Data API Git Data API write
- * path would call {@code createBlob} for each affected file, collect the
- * returned SHAs, and pass them to a follow-up {@code createTree} call.
+ * production code reads or writes it yet. A batched commit path calls
+ * {@code createBlob} for each affected file, collects the returned SHAs, and
+ * passes them to a follow-up {@code createTree} call.
  *
  * @see <a href="https://docs.github.com/en/rest/git/blobs?apiVersion=2022-11-28">GitHub Git blobs</a>
  */

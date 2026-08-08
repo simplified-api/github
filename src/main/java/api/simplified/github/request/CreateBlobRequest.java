@@ -19,10 +19,10 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>{@link #encoding} is either {@code "utf-8"} (the content field is sent
  * verbatim UTF-8 text) or {@code "base64"} (the content field is a base64
- * string of the raw bytes). A Git Data API multi-file commit path would use {@code "base64"} for all
- * blobs to avoid character-encoding surprises on binary-ish JSON.
+ * string of the raw bytes). A batched commit path uses {@code "base64"} for
+ * every blob to avoid character-encoding surprises on binary-ish JSON.
  *
- * <p>No production caller. Shipped alongside the Git Data API surface
+ * <p>No production caller. Shipped alongside the rest of the Git Data API
  * surface.
  *
  * @see <a href="https://docs.github.com/en/rest/git/blobs?apiVersion=2022-11-28#create-a-blob">
