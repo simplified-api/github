@@ -1,5 +1,6 @@
 package api.simplified.github.request;
 
+import api.simplified.github.GitHubGitDataContract;
 import com.google.gson.annotations.SerializedName;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -10,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Request body for the Git Data API
  * {@code POST /repos/{owner}/{repo}/git/blobs} endpoint on
- * {@link api.simplified.github.GitHubGitDataContract}.
+ * {@link GitHubGitDataContract}.
  *
  * <p>A blob is raw file content: no path, no directory metadata, just bytes
  * addressed by the SHA-1 of {@code blob <size>\0<content>}. The Git Data API

@@ -1,5 +1,6 @@
 package api.simplified.github.response;
 
+import api.simplified.github.GitHubGitDataContract;
 import com.google.gson.annotations.SerializedName;
 import dev.simplified.collection.ConcurrentList;
 import lombok.AccessLevel;
@@ -18,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
  * committer-HTML additions the Commits API adds.
  *
  * <p>Ships as part of the
- * {@link api.simplified.github.GitHubGitDataContract} surface - no
+ * {@link GitHubGitDataContract} surface - no
  * production code reads or writes it yet. Consumers fetch an existing commit
  * to obtain its tree SHA via {@link TreeRef#getSha()}, then use that as the
  * base tree for a follow-up {@code createTree} call.

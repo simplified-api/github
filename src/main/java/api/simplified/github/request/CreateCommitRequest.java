@@ -1,5 +1,7 @@
 package api.simplified.github.request;
 
+import api.simplified.github.GitHubGitDataContract;
+import api.simplified.github.response.GitCommit;
 import com.google.gson.annotations.SerializedName;
 import dev.simplified.collection.ConcurrentList;
 import lombok.AccessLevel;
@@ -12,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Request body for the Git Data API
  * {@code POST /repos/{owner}/{repo}/git/commits} endpoint on
- * {@link api.simplified.github.GitHubGitDataContract}.
+ * {@link GitHubGitDataContract}.
  *
  * <p>Creates a new commit object pointing at the given tree, with the
  * specified parent commits and commit message. No ref is updated - a separate
@@ -62,8 +64,7 @@ public final class CreateCommitRequest {
 
     /**
      * Author/committer identity block. Matches the shape of
-     * {@link api.simplified.github.response.GitCommit.Actor} but lives
-     * on the request side.
+     * {@link GitCommit.Actor} but lives on the request side.
      */
     @Getter
     @Builder

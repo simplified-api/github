@@ -1,5 +1,6 @@
 package api.simplified.github.request;
 
+import api.simplified.github.GitHubGitDataContract;
 import com.google.gson.annotations.SerializedName;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -11,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Request body for the Git Data API
  * {@code PATCH /repos/{owner}/{repo}/git/refs/heads/{branch}} endpoint on
- * {@link api.simplified.github.GitHubGitDataContract}.
+ * {@link GitHubGitDataContract}.
  *
  * <p>Moves the target branch pointer to the supplied {@link #sha}, optionally
  * with {@link #force} set to {@code true} for non-fast-forward updates. A

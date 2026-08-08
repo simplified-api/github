@@ -7,6 +7,7 @@ import api.simplified.github.request.CreateTreeRequest;
 import api.simplified.github.request.UpdateRefRequest;
 import api.simplified.github.response.GitBlob;
 import api.simplified.github.response.GitCommit;
+import api.simplified.github.response.GitHubCommit;
 import api.simplified.github.response.GitRef;
 import api.simplified.github.response.GitTree;
 import dev.simplified.client.request.Contract;
@@ -54,7 +55,7 @@ public interface GitHubGitDataContract extends Contract {
      * Fetches a git commit object by SHA.
      *
      * <p>Returns the Git Data API commit envelope, which is narrower than the Commits REST
-     * envelope carried by {@link api.simplified.github.response.GitHubCommit}. The commit
+     * envelope carried by {@link GitHubCommit}. The commit
      * carries a reference to its tree via {@link GitCommit.TreeRef#getSha()}.
      *
      * @param owner the repository owner login

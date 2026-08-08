@@ -1,5 +1,7 @@
 package api.simplified.github.request;
 
+import api.simplified.github.GitHubContentsWriteContract;
+import api.simplified.github.response.GitHubContentEnvelope;
 import com.google.gson.annotations.SerializedName;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -10,12 +12,12 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Request body for the {@code PUT /repos/{owner}/{repo}/contents/{path}} call on
- * {@link api.simplified.github.GitHubContentsWriteContract}.
+ * {@link GitHubContentsWriteContract}.
  *
  * <p>Serialized to JSON by Feign's {@code GsonEncoder} on the outbound request. Every field
  * listed here is a literal GitHub Contents API field - no framework-specific metadata is added.
  * {@link #sha} is the optimistic-concurrency token captured from a prior
- * {@link api.simplified.github.response.GitHubContentEnvelope#getSha() content envelope}
+ * {@link GitHubContentEnvelope#getSha() content envelope}
  * fetch; omitting it turns the PUT into an unconditional upsert.
  *
  * <p>Instances are built via Lombok's {@code @Builder}. The {@link #branch} and

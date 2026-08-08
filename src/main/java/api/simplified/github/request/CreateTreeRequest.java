@@ -1,5 +1,6 @@
 package api.simplified.github.request;
 
+import api.simplified.github.GitHubGitDataContract;
 import com.google.gson.annotations.SerializedName;
 import dev.simplified.collection.ConcurrentList;
 import lombok.AccessLevel;
@@ -12,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Request body for the Git Data API
  * {@code POST /repos/{owner}/{repo}/git/trees} endpoint on
- * {@link api.simplified.github.GitHubGitDataContract}.
+ * {@link GitHubGitDataContract}.
  *
  * <p>A tree is a directory snapshot composed of {@link TreeEntry} entries.
  * The optional {@link #baseTree} reference overlays new entries on top of an

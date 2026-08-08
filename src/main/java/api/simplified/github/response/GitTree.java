@@ -1,5 +1,7 @@
 package api.simplified.github.response;
 
+import api.simplified.github.GitHubGitDataContract;
+import api.simplified.github.request.CreateTreeRequest;
 import com.google.gson.annotations.SerializedName;
 import dev.simplified.collection.ConcurrentList;
 import lombok.AccessLevel;
@@ -17,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
  * entry (blob or subtree) with its mode, type, and SHA.
  *
  * <p>Ships as part of the
- * {@link api.simplified.github.GitHubGitDataContract} surface - no
+ * {@link GitHubGitDataContract} surface - no
  * production code reads or writes it yet. A batched commit path reads an
  * existing tree, overlays new blob SHAs onto the affected entries, and
  * {@code POST}s a new tree carrying those entries plus the original
@@ -60,8 +62,7 @@ public final class GitTree {
      *
      * <p>Path is the entry name relative to its parent tree; subtrees have
      * nested children reachable by fetching the entry's SHA as a tree. The
-     * write side of the same shape is
-     * {@link api.simplified.github.request.CreateTreeRequest.TreeEntry}.
+     * write side of the same shape is {@link CreateTreeRequest.TreeEntry}.
      */
     @Getter
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

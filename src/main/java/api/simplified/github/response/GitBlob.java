@@ -1,5 +1,6 @@
 package api.simplified.github.response;
 
+import api.simplified.github.GitHubGitDataContract;
 import com.google.gson.annotations.SerializedName;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -18,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
  * Contents API already covers file reads.
  *
  * <p>Ships as part of the
- * {@link api.simplified.github.GitHubGitDataContract} surface - no
+ * {@link GitHubGitDataContract} surface - no
  * production code reads or writes it yet. A batched commit path calls
  * {@code createBlob} for each affected file, collects the returned SHAs, and
  * passes them to a follow-up {@code createTree} call.

@@ -1,5 +1,6 @@
 package api.simplified.github.response;
 
+import api.simplified.github.GitHubGitDataContract;
 import com.google.gson.annotations.SerializedName;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -16,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
  * uses that as the parent for a follow-up commit in a batched write path.
  *
  * <p>Ships as part of the
- * {@link api.simplified.github.GitHubGitDataContract} surface - no
+ * {@link GitHubGitDataContract} surface - no
  * production code reads or writes it yet. Most callers use the single-file
  * Contents API; a multi-file writer switches to the Git Data API so one commit
  * can span every file in a batch.
