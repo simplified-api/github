@@ -53,7 +53,7 @@ class ContentsApiDtoRoundTripTest {
     @DisplayName("PutContentRequest serializes the four required fields and omits null optionals")
     void putContentRequestToJson() {
         PutContentRequest body = PutContentRequest.builder()
-            .message("Update ZodiacEvent: 1 mutation")
+            .message("Update Event: 1 mutation")
             .content("W3siaWQiOiJZRUFSX09GX1RIRV9TRUFMIn1d")
             .sha("3d21ec53a331a6f037a91c368710b99387d012c1")
             .branch("master")
@@ -61,7 +61,7 @@ class ContentsApiDtoRoundTripTest {
 
         String json = GSON.toJson(body);
 
-        assertThat(json, containsString("\"message\":\"Update ZodiacEvent: 1 mutation\""));
+        assertThat(json, containsString("\"message\":\"Update Event: 1 mutation\""));
         assertThat(json, containsString("\"content\":\"W3siaWQiOiJZRUFSX09GX1RIRV9TRUFMIn1d\""));
         assertThat(json, containsString("\"sha\":\"3d21ec53a331a6f037a91c368710b99387d012c1\""));
         assertThat(json, containsString("\"branch\":\"master\""));
@@ -105,7 +105,7 @@ class ContentsApiDtoRoundTripTest {
               },
               "commit": {
                 "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-                "message": "Update ZodiacEvent: 1 mutation"
+                "message": "Update Event: 1 mutation"
               }
             }
             """;
