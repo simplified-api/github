@@ -3,11 +3,9 @@ package api.simplified.github.request;
 import api.simplified.github.GitHubGitDataContract;
 import api.simplified.github.response.GitCommit;
 import com.google.gson.annotations.SerializedName;
+import dev.simplified.annotations.ClassBuilder;
+import dev.simplified.annotations.Getter;
 import dev.simplified.collection.ConcurrentList;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,8 +25,7 @@ import org.jetbrains.annotations.Nullable;
  *      GitHub create a commit</a>
  */
 @Getter
-@Builder
-@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+@ClassBuilder
 public final class CreateCommitRequest {
 
     /**
@@ -67,8 +64,7 @@ public final class CreateCommitRequest {
      * {@link GitCommit.Actor} but lives on the request side.
      */
     @Getter
-    @Builder
-    @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+    @ClassBuilder
     public static final class Actor {
 
         /**

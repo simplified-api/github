@@ -77,8 +77,9 @@ git ref lookup.
 - Git Data: `updateRef` with `force` null or `false` makes GitHub run the fast-forward check. Same
   guarantee one level up, and N files land as one commit.
 
-`PutContentRequest.sha` is annotated `@NotNull`, but nothing enforces it - Lombok null-checks only
-its own `@NonNull`, and `org.jetbrains.annotations.NotNull` is static-analysis only. Creating a file
+`PutContentRequest.sha` is annotated `@NotNull`, but nothing enforces it -
+`org.jetbrains.annotations.NotNull` is static-analysis only, and `@ClassBuilder`'s generated
+`build()` checks only what a `@BuildFlag` declares, which no request type here does. Creating a file
 that does not exist yet requires the field absent, and the builder will pass null through. The
 annotation records the intended path, not a runtime guard.
 
