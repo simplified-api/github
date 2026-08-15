@@ -20,9 +20,9 @@ repositories {
 
 dependencies {
     // Simplified Annotations
-    implementation(libs.simplified.annotations)
+    compileOnly(libs.simplified.annotations)
     annotationProcessor(libs.simplified.annotations)
-    testImplementation(libs.simplified.annotations)
+    testCompileOnly(libs.simplified.annotations)
     testAnnotationProcessor(libs.simplified.annotations)
 
     // Tests
