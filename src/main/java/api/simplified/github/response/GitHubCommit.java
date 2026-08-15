@@ -2,10 +2,10 @@ package api.simplified.github.response;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
+import dev.simplified.annotations.AccessLevel;
+import dev.simplified.annotations.Getter;
+import dev.simplified.annotations.RequiredArgsConstructor;
 import dev.simplified.client.Client;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 /**

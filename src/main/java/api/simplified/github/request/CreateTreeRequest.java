@@ -2,11 +2,9 @@ package api.simplified.github.request;
 
 import api.simplified.github.GitHubGitDataContract;
 import com.google.gson.annotations.SerializedName;
+import dev.simplified.annotations.ClassBuilder;
+import dev.simplified.annotations.Getter;
 import dev.simplified.collection.ConcurrentList;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,8 +26,7 @@ import org.jetbrains.annotations.Nullable;
  *      GitHub create a tree</a>
  */
 @Getter
-@Builder
-@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+@ClassBuilder
 public final class CreateTreeRequest {
 
     /**
@@ -52,8 +49,7 @@ public final class CreateTreeRequest {
      * (inline file content) must be non-null per GitHub's API.
      */
     @Getter
-    @Builder
-    @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+    @ClassBuilder
     public static final class TreeEntry {
 
         /**

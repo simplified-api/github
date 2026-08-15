@@ -3,10 +3,8 @@ package api.simplified.github.request;
 import api.simplified.github.GitHubContentsWriteContract;
 import api.simplified.github.response.GitHubContentEnvelope;
 import com.google.gson.annotations.SerializedName;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import dev.simplified.annotations.ClassBuilder;
+import dev.simplified.annotations.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,16 +18,15 @@ import org.jetbrains.annotations.Nullable;
  * {@link GitHubContentEnvelope#getSha() content envelope}
  * fetch; omitting it turns the PUT into an unconditional upsert.
  *
- * <p>Instances are built via Lombok's {@code @Builder}. The {@link #branch} and
- * {@link #committer} fields are optional per GitHub's API and default to {@code null} here -
- * omitted from the serialized payload by Gson's default behavior.
+ * <p>The {@link #branch} and {@link #committer} fields are optional per GitHub's API and
+ * default to {@code null} here - omitted from the serialized payload by Gson's default
+ * behavior.
  *
  * @see <a href="https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-or-update-file-contents">
  *      GitHub create or update file contents</a>
  */
 @Getter
-@Builder
-@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+@ClassBuilder
 public final class PutContentRequest {
 
     /**
@@ -70,8 +67,7 @@ public final class PutContentRequest {
      * when omitted.
      */
     @Getter
-    @Builder
-    @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+    @ClassBuilder
     public static final class Committer {
 
         /**

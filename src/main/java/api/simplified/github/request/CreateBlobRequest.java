@@ -2,10 +2,8 @@ package api.simplified.github.request;
 
 import api.simplified.github.GitHubGitDataContract;
 import com.google.gson.annotations.SerializedName;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import dev.simplified.annotations.ClassBuilder;
+import dev.simplified.annotations.Getter;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -30,8 +28,7 @@ import org.jetbrains.annotations.NotNull;
  *      GitHub create a blob</a>
  */
 @Getter
-@Builder
-@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+@ClassBuilder
 public final class CreateBlobRequest {
 
     /**

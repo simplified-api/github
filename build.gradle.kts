@@ -20,13 +20,10 @@ repositories {
 
 dependencies {
     // Simplified Annotations
+    implementation(libs.simplified.annotations)
     annotationProcessor(libs.simplified.annotations)
-
-    // Lombok
-    compileOnly(libs.lombok)
-    annotationProcessor(libs.lombok)
-    testCompileOnly(libs.lombok)
-    testAnnotationProcessor(libs.lombok)
+    testImplementation(libs.simplified.annotations)
+    testAnnotationProcessor(libs.simplified.annotations)
 
     // Tests
     testImplementation(libs.hamcrest)
@@ -35,8 +32,8 @@ dependencies {
     testImplementation(libs.junit.platform.launcher)
 
     // Simplified Libraries (github.com/simplified-dev)
-    api("com.github.simplified-dev:client") { version { strictly("e9dbd5d") } }
-    api("com.github.simplified-dev:gson-extras") { version { strictly("6421324") } }
+    api("com.github.simplified-dev:client") { version { strictly("2a3f2fc") } }
+    api("com.github.simplified-dev:gson-extras") { version { strictly("c4bde8d") } }
 
     // Gson - DTO bindings + the Gson-bound exception body parsing
     api(libs.gson)

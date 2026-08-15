@@ -70,7 +70,7 @@ Thank you for your interest in contributing! This document explains how to get s
 
 1. Open the project root (the directory containing `settings.gradle.kts`). IntelliJ auto-imports the Gradle build.
 2. Ensure the **Project SDK** under **File > Project Structure** is set to a JDK 21 installation.
-3. Enable **annotation processing** - Lombok generates every getter and builder in `request/` and `response/`, and the IDE reports phantom errors until the processor runs.
+3. Enable **annotation processing** - the Simplified Annotations processor generates every getter and builder in `request/` and `response/`, and the IDE reports phantom errors until the processor runs.
 4. Open the `Simplified-Api` parent instead when you need a sibling's unpublished change on the classpath; opening this repo alone resolves the pinned JitPack artifacts.
 
 ## Making Changes
@@ -86,7 +86,7 @@ git checkout -b feat/my-feature master
 
 ### Code Style
 
-The repository uses Lombok for boilerplate reduction and enforces a consistent Javadoc, exception, and control-flow style.
+The repository uses Simplified Annotations (`io.github.simplified-dev:annotations`) for boilerplate reduction and enforces a consistent Javadoc, exception, and control-flow style.
 
 #### Javadoc
 
@@ -95,7 +95,7 @@ The repository uses Lombok for boilerplate reduction and enforces a consistent J
 - **Tags** - Always include `@param`, `@return`, `@throws` where applicable. Lowercase sentence fragments, no trailing period. Single space after the parameter name - never column-align.
 - **Cross-references** - Use `{@link}` / `{@linkplain}` / `@see`. Use `{@code}` for inline code. Import link targets so they render with short names.
 - **Overrides** - Use `/** {@inheritDoc} */` for methods that override library/framework types. Do not rewrite the parent doc.
-- **Field getters** - Field-like interface methods (no params, non-void return) use a noun-phrase fragment without `@return` and without "Gets"/"Returns". Lombok `@Getter` implementations carry their doc on the field, not a separate method Javadoc block.
+- **Field getters** - Field-like interface methods (no params, non-void return) use a noun-phrase fragment without `@return` and without "Gets"/"Returns". `@Getter` implementations carry their doc on the field, not a separate method Javadoc block.
 - **Structure** - `<p>` on its own line between paragraphs; `<ul>` / `<li>` for lists; `<b>` for emphasis inside list items.
 - **Forbidden tags** - Never use `@author` or `@since`.
 - **Upstream references** - Every contract method carries an `@see` link to the GitHub REST documentation page for its endpoint, pinned to `apiVersion=2022-11-28`.
