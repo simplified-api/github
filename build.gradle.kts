@@ -32,8 +32,8 @@ dependencies {
     testImplementation(libs.junit.platform.launcher)
 
     // Simplified Libraries (github.com/simplified-dev)
-    api("com.github.simplified-dev:client") { version { strictly("2a3f2fc") } }
-    api("com.github.simplified-dev:gson-extras") { version { strictly("c4bde8d") } }
+    api("com.github.simplified-dev:client") { version { strictly("1ca9934") } }
+    api("com.github.simplified-dev:gson-extras") { version { strictly("f143dc1") } }
 
     // Gson - DTO bindings + the Gson-bound exception body parsing
     api(libs.gson)
