@@ -3,6 +3,8 @@ package api.simplified.github;
 import api.simplified.github.exception.GitHubApiException;
 import api.simplified.github.request.PutContentRequest;
 import api.simplified.github.response.GitHubContentEnvelope;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import dev.simplified.client.Client;
 import dev.simplified.client.ClientConfig;
 import dev.simplified.client.request.Contract;
@@ -16,8 +18,6 @@ import dev.simplified.persistence.store.FileFetcher;
 import dev.simplified.persistence.store.ManifestIndex;
 import dev.simplified.persistence.store.Source;
 import dev.simplified.persistence.store.WriteRequest;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
