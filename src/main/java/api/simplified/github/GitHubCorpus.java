@@ -2,26 +2,14 @@ package api.simplified.github;
 
 import api.simplified.github.exception.GitHubApiException;
 import api.simplified.github.request.PutContentRequest;
-import api.simplified.github.response.GitHubContentEnvelope;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import dev.simplified.client.Client;
 import dev.simplified.client.ClientConfig;
 import dev.simplified.client.request.Contract;
-import dev.simplified.collection.Concurrent;
-import dev.simplified.collection.ConcurrentList;
-import dev.simplified.collection.ConcurrentMap;
 import dev.simplified.gson.GsonSettings;
-import dev.simplified.persistence.JpaModel;
-import dev.simplified.persistence.exception.JpaException;
-import dev.simplified.persistence.store.FileFetcher;
-import dev.simplified.persistence.store.ManifestIndex;
-import dev.simplified.persistence.store.Source;
-import dev.simplified.persistence.store.WriteRequest;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
@@ -35,11 +23,13 @@ import java.util.Optional;
  * write needs - so a second hand-built pair drifts the moment one of them is copied without the
  * other. Nothing stops that except having nothing to copy.
  *
- * <p>Reading and writing are separate capabilities. {@link #reading()} answers a {@link Source};
- * {@link #writing(GitHubToken)} answers a {@link Source.Writable}, and omitting the token is how an
- * origin a caller may read but not update is expressed.
+ * <p>Everything here deals in paths, bytes and shas: {@link #read} answers a file's text,
+ * {@link #metadata} its blob sha, {@link #write} replaces it, {@link #tip} answers the branch tip
+ * and {@link #manifest} the catalogue the corpus publishes. What any of that means to a consumer's
+ * types is the consumer's, and nothing about a corpus assumes there is one.
  *
  * @see GitHubToken
+ * @see ManifestIndex
  */
 public final class GitHubCorpus {
 
@@ -47,16 +37,13 @@ public final class GitHubCorpus {
     private static final @NotNull String RAW_ACCEPT = "application/vnd.github.raw+json";
     private static final @NotNull String JSON_ACCEPT = "application/vnd.github+json";
 
-    /**
-     * The branch every contract's request line pins.
-     */
-    private static final @NotNull String BRANCH = "master";
-
     private final @NotNull String owner;
     private final @NotNull String repo;
+    private final @NotNull String branch;
     private final @NotNull String manifestPath;
     private final @NotNull Gson gson;
-    private final @NotNull GitHubContentsContract read;
+    private final @NotNull GitHubContentsContract reads;
+    private final @NotNull GitHubContentsWriteContract writes;
 
     /**
      * The catalogue held from the last fetch, or {@code null} before one.
@@ -66,9 +53,16 @@ public final class GitHubCorpus {
     private GitHubCorpus(@NotNull Builder builder) {
         this.owner = builder.owner;
         this.repo = builder.repo;
+        this.branch = builder.branch;
         this.manifestPath = builder.manifestPath;
         this.gson = builder.gsonSettings.create();
-        this.read = contract(GitHubContentsContract.class, RAW_ACCEPT, GitHubAuth.unauthenticated(), builder.gsonSettings);
+
+        GitHubAuth auth = builder.token == null
+            ? GitHubAuth.unauthenticated()
+            : builder.token.auth();
+
+        this.reads = contract(GitHubContentsContract.class, RAW_ACCEPT, auth, builder.gsonSettings);
+        this.writes = contract(GitHubContentsWriteContract.class, JSON_ACCEPT, auth, GsonSettings.defaults());
     }
 
     /**
@@ -86,12 +80,86 @@ public final class GitHubCorpus {
     }
 
     /**
+     * The branch every request is made against.
+     *
+     * @return the branch name
+     */
+    public @NotNull String getBranch() {
+        return this.branch;
+    }
+
+    /**
+     * Reads the text of one file.
+     *
+     * @param path the repo-root-relative file path
+     * @return the file content, decoded as UTF-8
+     * @throws GitHubApiException on any non-2xx status
+     */
+    public @NotNull String read(@NotNull String path) throws GitHubApiException {
+        return new String(this.reads.getFileContent(this.owner, this.repo, path, this.branch), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Reads the blob sha of one file, which is the token a write against it has to carry.
+     *
+     * @param path the repo-root-relative file path
+     * @return the git blob sha at the branch tip
+     * @throws GitHubApiException on any non-2xx status
+     */
+    public @NotNull String metadata(@NotNull String path) throws GitHubApiException {
+        return this.writes.getFileMetadata(this.owner, this.repo, path, this.branch).getSha();
+    }
+
+    /**
+     * Replaces the text of one file as a single commit.
+     *
+     * <p>The blob sha is the optimistic-concurrency token: GitHub refuses the write when the file
+     * has moved since that sha was read, which is what makes a lost update a failure rather than a
+     * silent overwrite.
+     *
+     * @param path the repo-root-relative file path
+     * @param content the text to commit
+     * @param sha the blob sha the caller expects the file to still carry
+     * @param message the commit message
+     * @throws GitHubApiException on any non-2xx status, including the conflict a stale sha raises
+     */
+    public void write(
+        @NotNull String path,
+        @NotNull String content,
+        @NotNull String sha,
+        @NotNull String message
+    ) throws GitHubApiException {
+        this.writes.putFileContent(
+            this.owner,
+            this.repo,
+            path,
+            PutContentRequest.builder()
+                .message(message)
+                .content(Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8)))
+                .sha(sha)
+                .branch(this.branch)
+                .build()
+        );
+    }
+
+    /**
+     * Reads the commit the branch currently points at.
+     *
+     * @return the tip commit sha
+     * @throws GitHubApiException on any non-2xx status
+     */
+    public @NotNull String tip() throws GitHubApiException {
+        return this.reads.getLatestCommit(this.owner, this.repo, this.branch).getSha();
+    }
+
+    /**
      * The corpus catalogue, fetched once and held.
      *
      * @return the catalogue
-     * @throws JpaException if the catalogue cannot be fetched or parsed
+     * @throws GitHubApiException if the catalogue cannot be fetched
+     * @throws IllegalStateException if the repository answers a body that is no catalogue
      */
-    public @NotNull ManifestIndex manifest() throws JpaException {
+    public @NotNull ManifestIndex manifest() throws GitHubApiException {
         ManifestIndex held = this.manifest;
 
         if (held == null) {
@@ -111,66 +179,29 @@ public final class GitHubCorpus {
      *
      * <p>One request rules out the whole corpus, because a revision that has not moved cannot have
      * moved any document under it. The answer is a catalogue rather than an instruction: what to do
-     * about a change belongs to whoever hydrates, never to whoever noticed.
+     * about a change belongs to whoever consumes it, never to whoever noticed.
      *
      * @return the new catalogue, empty when the corpus is still at the held revision
-     * @throws JpaException if the tip commit cannot be read
+     * @throws GitHubApiException if the tip commit cannot be read
      */
-    public @NotNull Optional<ManifestIndex> poll() throws JpaException {
+    public @NotNull Optional<ManifestIndex> poll() throws GitHubApiException {
         ManifestIndex held = this.manifest;
 
-        try {
-            String tip = this.read.getLatestMasterCommit(this.owner, this.repo).getSha();
-
-            if (held != null && held.getRevision().equals(tip))
-                return Optional.empty();
-        } catch (GitHubApiException exception) {
-            throw failed(exception, "read the tip commit of '%s/%s'", this.owner, this.repo);
-        }
+        if (held != null && held.getRevision().equals(this.tip()))
+            return Optional.empty();
 
         ManifestIndex fetched = this.fetchManifest();
         this.manifest = fetched;
         return Optional.of(fetched);
     }
 
-    /**
-     * The read half of the corpus.
-     *
-     * @return a source reading each type out of the layers the catalogue names for it
-     */
-    public @NotNull Source reading() {
-        return Source.documents(this::manifest, this.fetcher(), this.gson);
-    }
-
-    /**
-     * The write half of the corpus, for a caller holding an instruction to update it.
-     *
-     * @param token the write instruction
-     * @return a source that also writes
-     */
-    public @NotNull Source.Writable writing(@NotNull GitHubToken token) {
-        return new Commits(token);
-    }
-
-    /**
-     * Reads one layer's bytes off the corpus.
-     */
-    private @NotNull FileFetcher fetcher() {
-        return path -> {
-            try {
-                return new String(this.read.getFileContent(this.owner, this.repo, path), StandardCharsets.UTF_8);
-            } catch (GitHubApiException exception) {
-                throw failed(exception, "read '%s' from '%s/%s'", path, this.owner, this.repo);
-            }
-        };
-    }
-
-    private @NotNull ManifestIndex fetchManifest() throws JpaException {
-        String body = this.fetcher().fetchFile(this.manifestPath);
-        ManifestIndex fetched = this.gson.fromJson(body, ManifestIndex.class);
+    private @NotNull ManifestIndex fetchManifest() throws GitHubApiException {
+        ManifestIndex fetched = this.gson.fromJson(this.read(this.manifestPath), ManifestIndex.class);
 
         if (fetched == null)
-            throw new JpaException("'%s/%s' answered no catalogue at '%s'", this.owner, this.repo, this.manifestPath);
+            throw new IllegalStateException(
+                String.format("'%s/%s' answered no catalogue at '%s'", this.owner, this.repo, this.manifestPath)
+            );
 
         return fetched;
     }
@@ -197,121 +228,33 @@ public final class GitHubCorpus {
         return client.getContract();
     }
 
-    private static @NotNull JpaException failed(
-        @NotNull GitHubApiException exception,
-        @NotNull String what,
-        @NotNull Object... args
-    ) {
-        return new JpaException(
-            exception,
-            "Failed to " + String.format(what, args) + " (HTTP %d): %s",
-            exception.getStatus().getCode(),
-            exception.getResponse().getReason()
-        );
-    }
-
     /**
-     * The write half: a whole layer rewritten as one commit.
-     */
-    private final class Commits implements Source.Writable {
-
-        private final @NotNull Source reads = GitHubCorpus.this.reading();
-        private final @NotNull GitHubContentsWriteContract writes;
-
-        private Commits(@NotNull GitHubToken token) {
-            this.writes = contract(
-                GitHubContentsWriteContract.class,
-                JSON_ACCEPT,
-                token.auth(),
-                GsonSettings.defaults()
-            );
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public <T extends JpaModel> @NotNull ConcurrentList<T> read(@NotNull Class<T> type) throws JpaException {
-            return this.reads.read(type);
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * <p>A document is a whole file, so a write is: read the layers, apply the rows to the
-         * merged result, and PUT the first layer carrying all of it. Granularity is the origin's
-         * problem rather than the caller's, and here the origin's granularity is the file.
-         */
-        @Override
-        public <T extends JpaModel> void write(@NotNull WriteRequest<T> request) throws JpaException {
-            if (request.rows().isEmpty())
-                return;
-
-            ConcurrentList<ManifestIndex.Layer> layers = GitHubCorpus.this.manifest()
-                .layersOf(JpaModel.documentOf(request.type()));
-
-            if (layers.isEmpty())
-                throw new JpaException("The corpus names no document for '%s'", request.type().getName());
-
-            String path = layers.getFirst().path();
-            ConcurrentMap<String, T> merged = JpaModel.keyed(request.type(), this.reads.read(request.type()));
-            ConcurrentMap<String, T> applied = JpaModel.keyed(request.type(), request.rows());
-
-            if (request.operation() == WriteRequest.Operation.DELETE)
-                applied.keySet().forEach(merged::remove);
-            else
-                merged.putAll(applied);
-
-            Type listType = TypeToken.getParameterized(ConcurrentList.class, request.type()).getType();
-            String body = GitHubCorpus.this.gson.toJson(Concurrent.newUnmodifiableList(merged.values()), listType);
-            this.put(path, body, request);
-        }
-
-        private <T extends JpaModel> void put(
-            @NotNull String path,
-            @NotNull String body,
-            @NotNull WriteRequest<T> request
-        ) throws JpaException {
-            String owner = GitHubCorpus.this.owner;
-            String repo = GitHubCorpus.this.repo;
-
-            try {
-                // The precondition the caller named wins; without one the current blob sha is read
-                // and used, which still refuses a write over a file that moved under us.
-                String sha = request.getPrecondition().orElseGet(() -> {
-                    GitHubContentEnvelope envelope = this.writes.getFileMetadata(owner, repo, path);
-                    return envelope.getSha();
-                });
-
-                this.writes.putFileContent(
-                    owner,
-                    repo,
-                    path,
-                    PutContentRequest.builder()
-                        .message(String.format("Update %s", path))
-                        .content(Base64.getEncoder().encodeToString(body.getBytes(StandardCharsets.UTF_8)))
-                        .sha(sha)
-                        .branch(BRANCH)
-                        .build()
-                );
-            } catch (GitHubApiException exception) {
-                throw failed(exception, "write '%s' to '%s/%s'", path, owner, repo);
-            }
-        }
-
-    }
-
-    /**
-     * Names the repository, the catalogue path and the parser a corpus reads with.
+     * Names the repository, the branch, the catalogue path, the parser and the auth a corpus works
+     * under.
      */
     public static final class Builder {
 
         private final @NotNull String owner;
         private final @NotNull String repo;
+        private @NotNull String branch = "master";
         private @NotNull String manifestPath = "index.json";
         private @NotNull GsonSettings gsonSettings = GsonSettings.defaults();
+        private @Nullable GitHubToken token;
 
         private Builder(@NotNull String owner, @NotNull String repo) {
             this.owner = owner;
             this.repo = repo;
+        }
+
+        /**
+         * Names the branch every request is made against.
+         *
+         * @param branch the branch name
+         * @return this builder
+         */
+        public @NotNull Builder branch(@NotNull String branch) {
+            this.branch = branch;
+            return this;
         }
 
         /**
@@ -333,6 +276,20 @@ public final class GitHubCorpus {
          */
         public @NotNull Builder gson(@NotNull GsonSettings settings) {
             this.gsonSettings = settings;
+            return this;
+        }
+
+        /**
+         * Names the token every request carries.
+         *
+         * <p>A write needs one. A read does not, but an unauthenticated one is capped at sixty
+         * requests an hour per address, so a caller doing more than a handful supplies one anyway.
+         *
+         * @param token the personal access token
+         * @return this builder
+         */
+        public @NotNull Builder token(@NotNull GitHubToken token) {
+            this.token = token;
             return this;
         }
 

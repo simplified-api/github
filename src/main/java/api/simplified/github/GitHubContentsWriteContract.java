@@ -36,7 +36,7 @@ import org.jetbrains.annotations.NotNull;
 public interface GitHubContentsWriteContract extends Contract {
 
     /**
-     * Fetches the Contents API JSON envelope for the given path on the {@code master} branch.
+     * Fetches the Contents API JSON envelope for the given path on the given branch.
      *
      * <p>The envelope's {@link GitHubContentEnvelope#getSha()} field carries the git
      * <b>blob</b> SHA at the branch tip - the optimistic-concurrency token consumed by the
@@ -45,14 +45,16 @@ public interface GitHubContentsWriteContract extends Contract {
      * @param owner the repository owner login
      * @param repo the repository name
      * @param path the repo-root-relative file path
+     * @param branch the branch name
      * @return the Contents API envelope with {@code sha}, {@code size}, and base64 {@code content}
      * @throws GitHubApiException on any non-2xx status
      */
-    @RequestLine("GET /repos/{owner}/{repo}/contents/{path}?ref=master")
+    @RequestLine("GET /repos/{owner}/{repo}/contents/{path}?ref={branch}")
     @NotNull GitHubContentEnvelope getFileMetadata(
         @Param("owner") @NotNull String owner,
         @Param("repo") @NotNull String repo,
-        @Param("path") @NotNull String path
+        @Param("path") @NotNull String path,
+        @Param("branch") @NotNull String branch
     ) throws GitHubApiException;
 
     /**

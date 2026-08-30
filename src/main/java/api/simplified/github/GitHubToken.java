@@ -5,13 +5,13 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Optional;
 
 /**
- * The instruction that lets a {@link GitHubCorpus} write.
+ * A personal access token, held as the instruction a client authenticates with.
  *
- * <p>Handing one over is the whole of the difference between a corpus a caller may read and one it
- * may update, so a caller holding no instruction has no write half to reach for - not by cast, not
- * by configuration.
+ * <p>Reading it out of the environment is the common case and the one that has a failure mode worth
+ * a type: an unset variable is answered where the token is asked for rather than as a 401 on the
+ * first write.
  *
- * @see GitHubCorpus#writing(GitHubToken)
+ * @see GitHubCorpus.Builder#token(GitHubToken)
  */
 public final class GitHubToken {
 

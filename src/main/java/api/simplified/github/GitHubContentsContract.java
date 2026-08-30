@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
  * header, and the {@code Accept} media type are wired by the caller's {@link Client}
  * configuration.
  *
- * <p>The {@link #getFileContent(String, String, String)} method requires the
+ * <p>The {@link #getFileContent(String, String, String, String)} method requires the
  * {@code application/vnd.github.raw+json} {@code Accept} media type to be set as a static
  * client header. That media type is the only Contents API encoding that returns the raw file
  * body directly for files larger than 1 MB. Without it the Contents endpoint returns a base64
@@ -33,27 +33,29 @@ import org.jetbrains.annotations.NotNull;
 public interface GitHubContentsContract extends Contract {
 
     /**
-     * Fetches the current tip commit on the {@code master} branch of the given repository.
+     * Fetches the current tip commit on the given branch of the given repository.
      *
-     * <p>Uses the single-commit-by-ref endpoint ({@code /commits/master}) rather than the
-     * listing endpoint ({@code /commits?sha=master&per_page=1}). The listing endpoint serves
+     * <p>Uses the single-commit-by-ref endpoint ({@code /commits/{branch}}) rather than the
+     * listing endpoint ({@code /commits?sha={branch}&per_page=1}). The listing endpoint serves
      * responses through GitHub's 60-second edge cache and can return stale commit SHAs; the
-     * single-commit-by-ref endpoint resolves {@code master} via the git protocol ref lookup
-     * and is always fresh.
+     * single-commit-by-ref endpoint resolves the ref via the git protocol ref lookup and is
+     * always fresh.
      *
      * @param owner the repository owner login
      * @param repo the repository name
-     * @return the current tip commit on master
+     * @param branch the branch name
+     * @return the current tip commit on that branch
      * @throws GitHubApiException on any non-2xx status
      */
-    @RequestLine("GET /repos/{owner}/{repo}/commits/master")
-    @NotNull GitHubCommit getLatestMasterCommit(
+    @RequestLine("GET /repos/{owner}/{repo}/commits/{branch}")
+    @NotNull GitHubCommit getLatestCommit(
         @Param("owner") @NotNull String owner,
-        @Param("repo") @NotNull String repo
+        @Param("repo") @NotNull String repo,
+        @Param("branch") @NotNull String branch
     ) throws GitHubApiException;
 
     /**
-     * Fetches the raw file body at the given path on the {@code master} branch.
+     * Fetches the raw file body at the given path on the given branch.
      *
      * <p>Returns the literal file bytes when the client is configured with the
      * {@code application/vnd.github.raw+json} media type. The return type is {@code byte[]}
@@ -64,14 +66,16 @@ public interface GitHubContentsContract extends Contract {
      * @param owner the repository owner login
      * @param repo the repository name
      * @param path the repo-root-relative file path
+     * @param branch the branch name
      * @return the raw file body bytes
      * @throws GitHubApiException on any non-2xx status
      */
-    @RequestLine("GET /repos/{owner}/{repo}/contents/{path}?ref=master")
+    @RequestLine("GET /repos/{owner}/{repo}/contents/{path}?ref={branch}")
     byte @NotNull [] getFileContent(
         @Param("owner") @NotNull String owner,
         @Param("repo") @NotNull String repo,
-        @Param("path") @NotNull String path
+        @Param("path") @NotNull String path,
+        @Param("branch") @NotNull String branch
     ) throws GitHubApiException;
 
 }

@@ -34,10 +34,7 @@ dependencies {
     // Simplified Libraries (github.com/simplified-dev)
     api("com.github.simplified-dev:client") { version { strictly("2ced9a4") } }
     api("com.github.simplified-dev:gson-extras") { version { strictly("ed1d77e") } }
-
-    // The repository contracts, so a corpus can hand back a Source. Contracts only - the ORM half
-    // of persistence is a separate module and none of it lands on a consumer's classpath.
-    api("com.github.simplified-dev:persistence-contracts") { version { strictly("master-SNAPSHOT") } }
+    api("com.github.simplified-dev:collections") { version { strictly("9696ca5") } }
 
     // Gson - DTO bindings + the Gson-bound exception body parsing
     api(libs.gson)
