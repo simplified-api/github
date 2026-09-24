@@ -118,7 +118,7 @@ class GitHubCorpusPollTest {
     void setUp() {
         this.repository = new Repository();
         this.repository.commit("c1", "c0", "aaa");
-        this.corpus = new GitHubCorpus(GitHubCorpus.of("owner", "repo").manifest(MANIFEST), this.repository, new NoWrites());
+        this.corpus = GitHubCorpus.of("owner", "repo").manifest(MANIFEST).build(this.repository, new NoWrites());
     }
 
     @Test
@@ -163,11 +163,10 @@ class GitHubCorpusPollTest {
     @Test
     @DisplayName("a read names the branch unless it is handed a commit or ref to read at")
     void aReadNamesTheRefItReadsAt() {
-        GitHubCorpus branched = new GitHubCorpus(
-            GitHubCorpus.of("owner", "repo").branch("feat/indexing").manifest(MANIFEST),
-            this.repository,
-            new NoWrites()
-        );
+        GitHubCorpus branched = GitHubCorpus.of("owner", "repo")
+            .branch("feat/indexing")
+            .manifest(MANIFEST)
+            .build(this.repository, new NoWrites());
 
         branched.read("data/v1/items/items.json");
         branched.read("data/v1/items/items.json", "c1");

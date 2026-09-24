@@ -83,7 +83,7 @@ class GitHubCorpusBlobTest {
     }
 
     private static @NotNull GitHubCorpus over(@NotNull OneBody repository) {
-        return new GitHubCorpus(GitHubCorpus.of("owner", "repo").branch("feat/indexing"), repository, new NoWrites());
+        return GitHubCorpus.of("owner", "repo").branch("feat/indexing").build(repository, new NoWrites());
     }
 
     @Test

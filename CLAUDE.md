@@ -20,11 +20,14 @@ framework's contract with GitHub.
 
 `./gradlew test` is the whole gate. Every test builds a Gson fixture, a hand-made `ErrorContext` or
 a `GitHubCorpus` in-process, with no Spring context and nothing that waits on the network, so there
-is no slow tier and a green build needs no credentials. A corpus over contracts answered from memory
-makes no request at all. `GitHubCorpusBuilderTest` builds its corpora through the builder, which
-makes both real clients: each builds its Feign proxy and starts a background DNS lookup and `HEAD`
-probe of `api.github.com` whose failure is dropped, so the suite passes offline but is not silent on
-the wire.
+is no slow tier and a green build needs no credentials. A corpus test hands
+`GitHubCorpus.Builder.build(reads, writes)` contracts answered from memory; that terminal makes no
+client, so such a corpus makes no request at all, and the builder's token is never applied to the
+contracts it is handed. A consumer's tests put a corpus over their own doubles through the same
+public terminal. Three cases in `GitHubCorpusBuilderTest` build through `build()`, which makes both
+real clients: each builds its Feign proxy and starts a background DNS lookup and `HEAD` probe of
+`api.github.com` whose failure is dropped, so the suite passes offline but is not silent on the
+wire.
 
 That also bounds what green means: the suite proves the declared shapes parse, never that the
 endpoint still answers them. A `@RequestLine`, an `Accept` requirement or a return type is verified
@@ -154,3 +157,6 @@ stays distinguishable from `0`.
   `Authorization` header can reach the tree.
 - Do not add a not-modified return type to any contract method. Conditional requests are handled
   below the contract and a `304` is never a value a method sees.
+- Do not open `GitHubCorpus`'s constructors. A caller putting its own contracts under a corpus uses
+  `Builder.build(reads, writes)`, which is public API; a constructor a consumer reaches by sharing
+  the package breaks in that consumer's compile rather than here.

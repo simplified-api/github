@@ -60,7 +60,7 @@ Thank you for your interest in contributing! This document explains how to get s
    This compiles the main sources, runs the test suite, and assembles the jar.
 
    > [!NOTE]
-   > The suite is entirely offline - Gson fixtures and hand-built `ErrorContext` instances, no network and no Feign proxy. A green `build` needs no credentials and no connectivity.
+   > The suite passes offline - Gson fixtures, hand-built `ErrorContext` instances and corpora over contracts answered from memory, with nothing that waits on the network. A green `build` needs no credentials and no connectivity.
 
 4. **Build against local siblings (optional)**
 
@@ -195,6 +195,8 @@ ref lookup and is always fresh.
 - **Round-trip coverage** - required when your change adds or renames a DTO field. Every DTO carries a Gson round-trip test built from a fixture lifted out of GitHub's own documentation; a new field without one is a field nothing would notice going missing.
 
 - **Classification coverage** - required when your change touches `GitHubApiException`. `GitHubApiExceptionTest` builds a primitive `ErrorContext` per case; add one per new status/header/message combination rather than widening an existing assertion.
+
+- **Corpus coverage** - required when your change touches `GitHubCorpus`. Build the corpus through `GitHubCorpus.Builder.build(reads, writes)` over contracts answered from memory, as `GitHubCorpusPollTest` does, so the case asserts which requests the corpus makes and sends none of them to GitHub.
 
 - **Live verification** - the suite proves the shapes parse, not that the endpoint still answers them. When your change touches a `@RequestLine`, an `Accept` requirement, or a return type, exercise it against `api.github.com` once by hand and say so in the PR.
 

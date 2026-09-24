@@ -79,14 +79,14 @@ public final class GitHubCorpus {
     }
 
     /**
-     * Constructs a corpus over contracts the caller supplies, which is how a test answers the
-     * requests with no network.
+     * Constructs a corpus answering every request through the given contracts, whether the builder
+     * made them or the caller supplied them.
      *
      * @param builder the repository, branch, catalogue path and parser settings
      * @param reads the contract files and the branch tip are read through
      * @param writes the contract blob shas are read and files are written through
      */
-    GitHubCorpus(
+    private GitHubCorpus(
         @NotNull Builder builder,
         @NotNull GitHubContentsContract reads,
         @NotNull GitHubContentsWriteContract writes
@@ -359,7 +359,7 @@ public final class GitHubCorpus {
 
     /**
      * Names the repository, the branch, the catalogue path, the parser and the auth a corpus works
-     * under.
+     * under, and builds it over clients of its own or over contracts the caller supplies.
      */
     public static final class Builder {
 
@@ -423,7 +423,7 @@ public final class GitHubCorpus {
         }
 
         /**
-         * Builds the corpus.
+         * Builds the corpus over two clients it makes, each carrying the token when one is named.
          *
          * <p>Nothing here waits on GitHub. Each of the two clients builds its proxy and connection
          * pool at once and starts a DNS lookup and a {@code HEAD} probe of {@code api.github.com}
@@ -434,6 +434,34 @@ public final class GitHubCorpus {
          */
         public @NotNull GitHubCorpus build() {
             return new GitHubCorpus(this);
+        }
+
+        /**
+         * Builds the same corpus as {@link #build()}, answering every request through the given
+         * contracts rather than through clients it makes.
+         *
+         * <p>The two contracts replace the two clients, and with them everything a client carries:
+         * the {@code Accept} media type each is pinned to, the API version header, the settings a
+         * response is decoded with, the error decoding into {@link GitHubApiException}, and the
+         * auth. The token named on this builder is not applied to them - the contracts carry
+         * whatever auth they need. The repository, the branch, the catalogue path and the settings
+         * the catalogue is parsed with still come from this builder, and no client is made, so
+         * building starts no probe of {@code api.github.com}.
+         *
+         * <p>This serves a caller answering the requests itself - an in-memory double, a recording
+         * or caching proxy, a gateway. Whatever answers them answers as the clients do:
+         * {@code reads} returns a file as its raw bytes, whatever its size, and {@code writes}
+         * returns the envelope a blob sha is read from and takes the body a file is written with.
+         *
+         * @param reads the contract files and the branch tip are read through
+         * @param writes the contract blob shas are read and files are written through
+         * @return the corpus
+         */
+        public @NotNull GitHubCorpus build(
+            @NotNull GitHubContentsContract reads,
+            @NotNull GitHubContentsWriteContract writes
+        ) {
+            return new GitHubCorpus(this, reads, writes);
         }
 
     }

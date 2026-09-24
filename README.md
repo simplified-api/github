@@ -224,7 +224,7 @@ Leaving `force` unset (or `false`) on `updateRef` makes GitHub enforce the fast-
 ./gradlew test        # JUnit 5 suite
 ```
 
-The whole suite is offline. Every test builds Gson fixtures or a hand-made `ErrorContext` in-process - no network, no Feign proxy, no Spring context - so `test` is the complete gate and there is no slow tier.
+The whole suite passes offline. Every test builds Gson fixtures, a hand-made `ErrorContext` or a `GitHubCorpus` in-process, with no Spring context and nothing that waits on the network, so `test` is the complete gate and there is no slow tier. A corpus test builds through `GitHubCorpus.Builder.build(reads, writes)` over contracts answered from memory and makes no request; the three `GitHubCorpusBuilderTest` cases that build through `build()` make real clients, which probe `api.github.com` in the background and drop any failure.
 
 ## Package Structure
 
