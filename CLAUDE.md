@@ -81,6 +81,14 @@ git ref lookup.
 - Git Data: `updateRef` with `force` null or `false` makes GitHub run the fast-forward check. Same
   guarantee one level up, and N files land as one commit.
 
+The blob SHA a Contents write carries is only as good as its pairing with the text the caller
+edited. `GitHubCorpus.blob` reads the raw bytes at the branch and computes the SHA from them - SHA-1
+over `blob <length>\0` and the bytes, as `git hash-object` does - so the two always name the same
+content, and a body the response cache replays from before the branch moved carries its own stale
+SHA and the `PUT` is refused rather than landing over the newer commit. `metadata` reads the SHA
+through the write client, whose cache is its own, so text read beside it can be older than the SHA
+it is written under.
+
 `PutContentRequest.sha` is annotated `@NotNull`, but nothing enforces it -
 `org.jetbrains.annotations.NotNull` is static-analysis only, and `@ClassBuilder`'s generated
 `build()` checks only what a `@BuildFlag` declares, which no request type here does. Creating a file

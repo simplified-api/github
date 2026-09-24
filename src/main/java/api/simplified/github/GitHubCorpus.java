@@ -11,7 +11,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.HexFormat;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -20,12 +23,13 @@ import java.util.Optional;
  *
  * <p>This is the one place the client assembly lives. The two {@code Accept} media types are not
  * interchangeable - the raw one is the only Contents encoding that returns a body above one
- * megabyte, and the JSON one is the only one that returns the envelope carrying the blob sha a
- * write needs - so a second hand-built pair drifts the moment one of them is copied without the
- * other. Nothing stops that except having nothing to copy.
+ * megabyte, and the JSON one is the only one that returns the envelope {@link #metadata} reads and
+ * the one a write is sent under - so a second hand-built pair drifts the moment one of them is
+ * copied without the other. Nothing stops that except having nothing to copy.
  *
  * <p>Everything here deals in paths, bytes and shas: {@link #read} answers a file's text at the branch
- * or at a named commit, {@link #metadata} its blob sha, {@link #write} replaces it, {@link #tip}
+ * or at a named commit, {@link #blob} its text together with the blob sha of the bytes read,
+ * {@link #metadata} its blob sha, {@link #write} replaces it, {@link #tip}
  * answers the branch tip, {@link #manifest} the catalogue the corpus publishes and
  * {@link #manifestCommit} the commit that catalogue was read at, and {@link #poll} replaces the held
  * catalogue once the branch moves. What any of that means to a consumer's types is the consumer's,
@@ -146,6 +150,24 @@ public final class GitHubCorpus {
      */
     public @NotNull String read(@NotNull String path, @NotNull String ref) throws GitHubApiException {
         return new String(this.reads.getFileContent(this.owner, this.repo, path, ref), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Reads the text of one file at the branch together with its blob sha.
+     *
+     * <p>The sha is computed from the bytes the text was decoded from, the way git names a blob, so
+     * the two always describe the same content and a write under the sha lands only over the body
+     * the caller read. A body the client's response cache replays from before the branch moved
+     * carries that older body's sha, and GitHub refuses a write under it rather than letting it
+     * overwrite the newer commit.
+     *
+     * @param path the repo-root-relative file path
+     * @return the file's text and the blob sha of its bytes, read at the branch
+     * @throws GitHubApiException on any non-2xx status
+     */
+    public @NotNull Blob blob(@NotNull String path) throws GitHubApiException {
+        byte[] bytes = this.reads.getFileContent(this.owner, this.repo, path, this.branch);
+        return new Blob(new String(bytes, StandardCharsets.UTF_8), blobSha(bytes));
     }
 
     /**
@@ -308,6 +330,32 @@ public final class GitHubCorpus {
 
         return client.getContract();
     }
+
+    /**
+     * Names bytes the way git names a blob - SHA-1 over {@code blob}, a space, the byte length, a
+     * NUL and the bytes themselves.
+     *
+     * @param bytes the blob's content
+     * @return the sha as lowercase hex
+     */
+    private static @NotNull String blobSha(byte @NotNull [] bytes) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-1");
+            digest.update(("blob " + bytes.length + "\0").getBytes(StandardCharsets.US_ASCII));
+            return HexFormat.of().formatHex(digest.digest(bytes));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("Every Java platform implements SHA-1", exception);
+        }
+    }
+
+    /**
+     * One file's text with the git blob sha of the bytes it was decoded from.
+     *
+     * @param text the file content, decoded as UTF-8
+     * @param sha the git blob sha of the bytes the text was decoded from, the token a write replacing
+     *        exactly this content carries
+     */
+    public record Blob(@NotNull String text, @NotNull String sha) {}
 
     /**
      * Names the repository, the branch, the catalogue path, the parser and the auth a corpus works
