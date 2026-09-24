@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>Shared by {@code GET /repos/{owner}/{repo}/git/refs/heads/{branch}} and
  * {@code PATCH /repos/{owner}/{repo}/git/refs/heads/{branch}} since the response
- * envelopes are structurally identical. The caller reads {@link Object#getSha()}
+ * envelopes are structurally identical. The caller reads {@link Object#sha}
  * on {@link #object} to get the current commit SHA the branch points at, then
  * uses that as the parent for a follow-up commit in a batched write path.
  *

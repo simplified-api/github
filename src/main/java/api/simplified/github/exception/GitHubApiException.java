@@ -5,6 +5,8 @@ import dev.simplified.client.exception.ApiException;
 import dev.simplified.client.exception.ErrorContext;
 import dev.simplified.client.exception.JsonApiException;
 import dev.simplified.client.exception.NotModifiedException;
+import dev.simplified.client.exception.PreconditionFailedException;
+import dev.simplified.client.exception.RateLimitException;
 import dev.simplified.client.response.Response;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,19 +20,21 @@ import org.jetbrains.annotations.NotNull;
  * {@link Gson} so callers can reach the GitHub {@code message} and {@code documentation_url}
  * fields without re-parsing.
  *
- * <p>Three helpers disambiguate the common 403/429 confusion surface on the GitHub API:
+ * <p>Three helpers disambiguate the crowded 403 surface of the GitHub API:
  * <ul>
- *   <li>{@link #isPrimaryRateLimit()} - 403/429 with {@code x-ratelimit-remaining: 0} and a
+ *   <li>{@link #isPrimaryRateLimit()} - 403 or 429 with {@code x-ratelimit-remaining: 0} and a
  *       message containing {@code "API rate limit exceeded"}.</li>
- *   <li>{@link #isSecondaryRateLimit()} - 403/429 with a message containing {@code "secondary
+ *   <li>{@link #isSecondaryRateLimit()} - 403 or 429 with a message containing {@code "secondary
  *       rate limit"} or {@code "abuse detection"}.</li>
  *   <li>{@link #isPermissions()} - 403 that is neither of the above (PAT scope problem).</li>
  * </ul>
  *
- * <p>A 304 {@code Not Modified} never reaches this class - the framework's
- * {@code InternalErrorDecoder} short-circuits 3xx responses into
- * {@link NotModifiedException} before per-client error decoders
- * run.
+ * <p>Three kinds of status never reach this class through the client. The framework's
+ * {@code InternalErrorDecoder} raises {@link NotModifiedException} for a 3xx,
+ * {@link PreconditionFailedException} for a 412 and {@link RateLimitException} for a 429 before
+ * per-client error decoders run, so an instance the client raises carries any other non-2xx
+ * status, and a 429 reaches the rate-limit helpers only on an instance built directly from an
+ * {@link ErrorContext}.
  *
  * @see GitHubErrorResponse
  * @see JsonApiException
@@ -63,6 +67,10 @@ public final class GitHubApiException extends JsonApiException {
      * {@code "API rate limit exceeded"}. Requiring both signals makes the check robust to
      * GitHub tweaking the exact wording of the message text.
      *
+     * <p>Through the client only a 403 can match: a 429 is raised as {@link RateLimitException}
+     * before any {@code GitHubApiException} is built, so the 429 branch answers only for an instance
+     * built directly from an {@link ErrorContext}.
+     *
      * @return {@code true} when both signals match
      */
     public boolean isPrimaryRateLimit() {
@@ -84,7 +92,11 @@ public final class GitHubApiException extends JsonApiException {
     /**
      * Returns whether this failure represents a secondary rate-limit or abuse-detection trip.
      *
-     * @return {@code true} when the status is 403/429 and the body signals a secondary limit
+     * <p>Through the client only a 403 can match: a 429 is raised as {@link RateLimitException}
+     * before any {@code GitHubApiException} is built, so the 429 branch answers only for an instance
+     * built directly from an {@link ErrorContext}.
+     *
+     * @return {@code true} when the status is 403 or 429 and the body signals a secondary limit
      */
     public boolean isSecondaryRateLimit() {
         int code = this.getStatus().getCode();

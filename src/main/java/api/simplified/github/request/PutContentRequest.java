@@ -14,9 +14,9 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>Serialized to JSON by Feign's {@code GsonEncoder} on the outbound request. Every field
  * listed here is a literal GitHub Contents API field - no framework-specific metadata is added.
- * {@link #sha} is the optimistic-concurrency token captured from a prior
- * {@link GitHubContentEnvelope#getSha() content envelope}
- * fetch; omitting it turns the PUT into an unconditional upsert.
+ * {@link #sha} is the optimistic-concurrency token: the blob SHA a prior
+ * {@link GitHubContentEnvelope#sha content envelope} fetch read, which GitHub requires to update a
+ * file that exists. It is omitted only to create a file that does not exist yet.
  *
  * <p>The {@link #branch} and {@link #committer} fields are optional per GitHub's API and
  * default to {@code null} here - omitted from the serialized payload by Gson's default
@@ -42,9 +42,10 @@ public final class PutContentRequest {
     private final @NotNull String content;
 
     /**
-     * The expected blob SHA of the file at the branch tip. GitHub rejects the
-     * request with {@code 409}/{@code 412} when this does not match, enabling
-     * optimistic-concurrency control for the batched write path.
+     * The blob SHA the file being replaced is expected to carry at the branch tip, absent when
+     * creating a file that does not exist yet. GitHub refuses the write with a {@code 409} or a
+     * {@code 422} when the file no longer carries it, so a write cannot land over a change to the
+     * file the caller never read; each accepted write is its own commit on the branch.
      */
     @SerializedName("sha")
     private final @NotNull String sha;

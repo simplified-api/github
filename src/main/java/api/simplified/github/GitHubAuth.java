@@ -1,6 +1,8 @@
 package api.simplified.github;
 
+import dev.simplified.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -25,19 +27,21 @@ public interface GitHubAuth extends Supplier<Optional<String>> {
     /**
      * Builds a bearer-token auth source from the given personal access token.
      *
-     * <p>A blank or empty token degrades to {@link #unauthenticated()} so callers can pass an
-     * unset environment variable straight through without branching.
+     * <p>A null or empty token degrades to {@link #unauthenticated()}. That is what lets the
+     * result of {@link System#getenv(String)} pass straight through without a branch at the call
+     * site - null when the variable is unset, empty when it is set to nothing. A token of
+     * whitespace alone is not empty, and is sent as it is.
      *
-     * @param token the personal access token, possibly blank
-     * @return an auth source carrying the {@code Bearer <token>} header value, or empty when
-     *         the token is blank
+     * @param token the personal access token, or {@code null} for none
+     * @return an auth source carrying the {@code Bearer <token>} header value, or the
+     *         unauthenticated source when the token is null or empty
      */
-    static @NotNull GitHubAuth bearer(@NotNull String token) {
-        if (token.isBlank())
+    static @NotNull GitHubAuth bearer(@Nullable String token) {
+        if (StringUtil.isEmpty(token))
             return unauthenticated();
 
-        String headerValue = "Bearer " + token;
-        return () -> Optional.of(headerValue);
+        Optional<String> header = Optional.of("Bearer " + token);
+        return () -> header;
     }
 
     /**

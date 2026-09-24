@@ -1,5 +1,6 @@
 package api.simplified.github.response;
 
+import api.simplified.github.GitHubCorpus;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import dev.simplified.annotations.AccessLevel;
@@ -9,19 +10,20 @@ import dev.simplified.client.Client;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Gson-bindable mirror of a single entry in the GitHub "List commits" response.
+ * Gson-bindable mirror of the GitHub "Get a commit" response, returned by
+ * {@code GET /repos/{owner}/{repo}/commits/{ref}}.
  *
- * <p>Only the fields consumed by the change-detection pipeline are declared; every
+ * <p>Only the commit sha, its message and its committer's name and date are declared; every
  * other field in the upstream JSON is silently ignored by Gson's reflective binder. The top-level
- * {@link #sha} is the branch-tip commit id the poller compares against
- * {@code ExternalAssetState.commitSha}; {@link CommitDetail#committer} carries the ISO-8601
- * timestamp that the operator runbook surfaces for observability.
+ * {@link #sha} is the commit a branch points at, which {@link GitHubCorpus#tip()} answers and
+ * {@link GitHubCorpus#poll()} compares against the tip its held catalogue was read at;
+ * {@link CommitDetail#committer} carries the ISO-8601 timestamp the commit was made at.
  *
  * <p>Instances are produced by {@link Gson#fromJson} inside the
  * {@link Client} response decoder pipeline - never constructed directly
  * by application code, which is why the constructor is private.
  *
- * @see <a href="https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28">GitHub list commits</a>
+ * @see <a href="https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#get-a-commit">GitHub get a commit</a>
  */
 @Getter
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

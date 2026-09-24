@@ -76,8 +76,28 @@ class ContentsApiDtoRoundTripTest {
             .sha("s")
             .build();
 
+        String json = GSON.toJson(body);
+
         assertThat(body.getBranch(), nullValue());
         assertThat(body.getCommitter(), nullValue());
+        assertThat(json, not(containsString("\"branch\"")));
+        assertThat(json, not(containsString("\"committer\"")));
+    }
+
+    @Test
+    @DisplayName("PutContentRequest built without a sha serializes no sha key")
+    void putContentRequestWithoutShaOmitsIt() {
+        PutContentRequest body = PutContentRequest.builder()
+            .message("Create Event: 1 mutation")
+            .content("W3siaWQiOiJZRUFSX09GX1RIRV9TRUFMIn1d")
+            .branch("master")
+            .build();
+
+        String json = GSON.toJson(body);
+
+        assertThat(json, containsString("\"message\":\"Create Event: 1 mutation\""));
+        assertThat(json, containsString("\"content\":\"W3siaWQiOiJZRUFSX09GX1RIRV9TRUFMIn1d\""));
+        assertThat(json, not(containsString("\"sha\"")));
     }
 
     @Test
