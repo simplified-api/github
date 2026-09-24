@@ -176,7 +176,7 @@ Layers merge by key with the later one winning, so a generated file and a compan
 
 | Contract | Accept | Endpoints | Notes |
 |----------|--------|-----------|-------|
-| `GitHubContentsContract` | `vnd.github.raw+json` | `GET commits/{branch}`, `GET contents/{path}?ref={ref}` | Raw file bytes, no 1 MB cap |
+| `GitHubContentsContract` | `vnd.github.raw+json` | `GET commits/{branch}`, `GET contents/{path}?ref={ref}` | Raw file bytes, up to GitHub's 100 MB limit |
 | `GitHubContentsWriteContract` | `vnd.github+json` | `GET contents/{path}?ref={branch}`, `PUT contents/{path}` | Envelope read for the blob SHA, then the conditional write |
 | `GitHubGitDataContract` | `vnd.github+json` | `getRef`, `getCommit`, `getTree`, `createBlob`, `createTree`, `createCommit`, `updateRef` | The seven calls a multi-file single commit needs |
 | `GitHubAuth` | - | - | `Supplier<Optional<String>>` for the `Authorization` header |
@@ -194,8 +194,8 @@ Build one `Client` per contract, then call the contract proxy. Owner, repository
 //    token - an unset or empty variable - degrades to unauthenticated rather than failing.
 GitHubAuth auth = GitHubAuth.bearer(System.getenv("GITHUB_TOKEN"));
 
-// 2. The read client pins the raw media type. Without it the Contents endpoint answers a
-//    base64 envelope capped at 1 MB and rejects anything larger.
+// 2. The read client pins the raw media type, the only one that returns the body of a file
+//    over 1 MB. GitHub documents the default type only up to 1 MB and supports none past 100 MB.
 ClientConfig<GitHubContentsContract> config = ClientConfig
     .builder(GitHubContentsContract.class, GsonSettings.defaults())
     .withHeader("Accept", "application/vnd.github.raw+json")

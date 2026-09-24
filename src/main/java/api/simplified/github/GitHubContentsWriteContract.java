@@ -63,7 +63,8 @@ public interface GitHubContentsWriteContract extends Contract {
      * @param repo the repository name
      * @param path the repo-root-relative file path
      * @param branch the branch name
-     * @return the Contents API envelope with {@code sha}, {@code size}, and base64 {@code content}
+     * @return the Contents API envelope, whose {@code sha} is the blob sha at the branch tip and whose
+     *         {@code encoding} names how {@code content} is encoded
      * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
      * @throws NotModifiedException on a 3xx status
      * @throws PreconditionFailedException on a 412 status

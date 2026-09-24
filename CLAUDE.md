@@ -71,8 +71,8 @@ The two Contents surfaces are siblings, not one interface with an extension, bec
 carries a single static header set and they need different `Accept` values.
 
 - `GitHubContentsContract` pins `application/vnd.github.raw+json`. It is the only Contents encoding
-  that returns a raw body for a file over 1 MB; without it the endpoint answers a base64 envelope
-  capped at 1 MB and rejects anything larger.
+  that returns the body of a file between 1 and 100 MB, and GitHub supports none above 100 MB. The
+  default media type is documented only up to 1 MB; GitHub does not say what it answers beyond.
 - `GitHubContentsWriteContract` pins `application/vnd.github+json` so `GET` returns the envelope
   whose `sha` is the write token and `PUT` accepts a JSON body.
 - Two contracts therefore means two `Client` instances. Merging them, or adding a method needing a

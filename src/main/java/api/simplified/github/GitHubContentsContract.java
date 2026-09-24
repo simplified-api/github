@@ -22,9 +22,10 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>The {@link #getFileContent(String, String, String, String)} method requires the
  * {@code application/vnd.github.raw+json} {@code Accept} media type to be set as a static
- * client header. That media type is the only Contents API encoding that returns the raw file
- * body directly for files larger than 1 MB. Without it the Contents endpoint returns a base64
- * envelope capped at 1 MB and rejects any larger blob.
+ * client header. That media type is the only Contents API encoding that returns the file's body
+ * for a file between 1 and 100 MB; GitHub supports no media type above 100 MB. The default media
+ * type is documented only for files up to 1 MB, and GitHub does not say what it answers for a
+ * larger one.
  *
  * <p>Conditional {@code If-None-Match} requests are handled automatically by the {@link Client}
  * library: a matching cached response triggers an auto-attached header on outbound {@code GET}s
