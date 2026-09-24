@@ -18,9 +18,13 @@ framework's contract with GitHub.
 
 ## Gates
 
-`./gradlew test` is the whole gate. Every test builds a Gson fixture, a hand-made `ErrorContext`
-or a `GitHubCorpus` over contracts answered from memory, in-process - no network, no Feign proxy, no
-Spring context - so there is no slow tier and a green build needs no credentials.
+`./gradlew test` is the whole gate. Every test builds a Gson fixture, a hand-made `ErrorContext` or
+a `GitHubCorpus` in-process, with no Spring context and nothing that waits on the network, so there
+is no slow tier and a green build needs no credentials. A corpus over contracts answered from memory
+makes no request at all. `GitHubCorpusBuilderTest` builds its corpora through the builder, which
+makes both real clients: each builds its Feign proxy and starts a background DNS lookup and `HEAD`
+probe of `api.github.com` whose failure is dropped, so the suite passes offline but is not silent on
+the wire.
 
 That also bounds what green means: the suite proves the declared shapes parse, never that the
 endpoint still answers them. A `@RequestLine`, an `Accept` requirement or a return type is verified

@@ -27,13 +27,13 @@ import java.util.Optional;
  * the one a write is sent under - so a second hand-built pair drifts the moment one of them is
  * copied without the other. Nothing stops that except having nothing to copy.
  *
- * <p>Everything here deals in paths, bytes and shas: {@link #read} answers a file's text at the branch
- * or at a named commit, {@link #blob} its text together with the blob sha of the bytes read,
- * {@link #metadata} its blob sha, {@link #write} replaces it, {@link #tip}
- * answers the branch tip, {@link #manifest} the catalogue the corpus publishes and
- * {@link #manifestCommit} the commit that catalogue was read at, and {@link #poll} replaces the held
- * catalogue once the branch moves. What any of that means to a consumer's types is the consumer's,
- * and nothing about a corpus assumes there is one.
+ * <p>Everything here deals in paths, bytes and shas: {@link #read} answers a file's text at the
+ * branch or at a named commit, {@link #blob} its text together with the blob sha of the bytes read,
+ * {@link #metadata} its blob sha, {@link #write} replaces it, {@link #tip} answers the branch tip,
+ * {@link #manifest} the catalogue the corpus publishes and {@link #manifestCommit} the commit that
+ * catalogue was read at, and {@link #poll} replaces the held catalogue once the branch moves. What
+ * any of that means to a consumer's types is the consumer's, and nothing about a corpus assumes
+ * there is one.
  *
  * <p>The catalogue is always read at a commit sha rather than at the branch. A branch read can be
  * answered from the client's response cache for up to a minute after the branch moves, where a
@@ -425,8 +425,10 @@ public final class GitHubCorpus {
         /**
          * Builds the corpus.
          *
-         * <p>No request is issued: the client builds its proxy and its connection pool on the first
-         * call, so an unreachable GitHub does not stop a session being configured.
+         * <p>Nothing here waits on GitHub. Each of the two clients builds its proxy and connection
+         * pool at once and starts a DNS lookup and a {@code HEAD} probe of {@code api.github.com}
+         * on a background thread, whose failure is dropped, so an unreachable GitHub does not stop
+         * a session being configured - the first read or write is what reports it.
          *
          * @return the corpus
          */

@@ -15,10 +15,10 @@ import java.util.stream.Collectors;
  * A corpus catalogue: the revision it was taken at, and the ordered layers each logical document is
  * made of.
  *
- * <p>It names no Java class, no repository and not the commit carrying it. A logical name is the document's own name, which is
- * also the file stem, so a consumer resolves whatever it holds to a document without the catalogue
- * having to know one exists. Any origin that can publish a revision and a list of hashed paths is
- * describable this way.
+ * <p>It names no Java class, no repository and not the commit carrying it. A logical name is the
+ * document's own name, which is also the file stem, so a consumer resolves whatever it holds to a
+ * document without the catalogue having to know one exists. Any origin that can publish a revision
+ * and a list of hashed paths is describable this way.
  *
  * <p>Layers are ordered and merged by key with the later one winning, so a generated file and the
  * companion that overrides rows in it are one document rather than two mechanisms.
