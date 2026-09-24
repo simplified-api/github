@@ -4,7 +4,10 @@ import api.simplified.github.exception.GitHubApiException;
 import api.simplified.github.request.PutContentRequest;
 import api.simplified.github.response.GitHubContentEnvelope;
 import api.simplified.github.response.GitHubPutResponse;
+import dev.simplified.client.Client;
+import dev.simplified.client.exception.NotModifiedException;
 import dev.simplified.client.exception.PreconditionFailedException;
+import dev.simplified.client.exception.RateLimitException;
 import dev.simplified.client.request.Contract;
 import dev.simplified.client.route.Route;
 import feign.Param;
@@ -30,7 +33,15 @@ import org.jetbrains.annotations.NotNull;
  *       file no longer carries that {@code sha}.</li>
  * </ol>
  *
+ * <p>The failures each method documents are those of a {@link Client} configured with
+ * {@code withErrorDecoder(GitHubApiException::new)}, as {@link GitHubCorpus} configures its own.
+ * The client raises {@link NotModifiedException} for a 3xx status,
+ * {@link PreconditionFailedException} for a 412 and {@link RateLimitException} for a 429 before its
+ * error decoder runs, and hands every other non-2xx status to {@link GitHubApiException}.
+ *
  * @see GitHubContentsContract
+ * @see <a href="https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28">GitHub
+ *      repository contents</a>
  */
 @Route("api.github.com")
 public interface GitHubContentsWriteContract extends Contract {
@@ -47,7 +58,10 @@ public interface GitHubContentsWriteContract extends Contract {
      * @param path the repo-root-relative file path
      * @param branch the branch name
      * @return the Contents API envelope with {@code sha}, {@code size}, and base64 {@code content}
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     @RequestLine("GET /repos/{owner}/{repo}/contents/{path}?ref={branch}")
     @NotNull GitHubContentEnvelope getFileMetadata(
@@ -74,7 +88,11 @@ public interface GitHubContentsWriteContract extends Contract {
      * @param path the repo-root-relative file path
      * @param body the PUT body carrying message, base64 content, and blob SHA
      * @return the GitHub PUT response envelope with the new blob SHA and commit SHA
-     * @throws GitHubApiException on any non-2xx status (including 409 Conflict for SHA mismatch)
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429, including the
+     *         409 a stale sha raises
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     @RequestLine("PUT /repos/{owner}/{repo}/contents/{path}")
     @NotNull GitHubPutResponse putFileContent(

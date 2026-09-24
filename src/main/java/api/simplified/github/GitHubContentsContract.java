@@ -3,6 +3,9 @@ package api.simplified.github;
 import api.simplified.github.exception.GitHubApiException;
 import api.simplified.github.response.GitHubCommit;
 import dev.simplified.client.Client;
+import dev.simplified.client.exception.NotModifiedException;
+import dev.simplified.client.exception.PreconditionFailedException;
+import dev.simplified.client.exception.RateLimitException;
 import dev.simplified.client.request.Contract;
 import dev.simplified.client.route.Route;
 import feign.Param;
@@ -25,7 +28,14 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>Conditional {@code If-None-Match} requests are handled automatically by the {@link Client}
  * library: a matching cached response triggers an auto-attached header on outbound {@code GET}s
- * and a transparent cache replay on {@code 304}.
+ * and a transparent cache replay on {@code 304}. A {@code 304} the client holds no cached body for
+ * is raised as {@link NotModifiedException}.
+ *
+ * <p>The failures each method documents are those of a {@link Client} configured with
+ * {@code withErrorDecoder(GitHubApiException::new)}, as {@link GitHubCorpus} configures its own.
+ * The client raises {@link NotModifiedException} for a 3xx status,
+ * {@link PreconditionFailedException} for a 412 and {@link RateLimitException} for a 429 before its
+ * error decoder runs, and hands every other non-2xx status to {@link GitHubApiException}.
  *
  * @see <a href="https://docs.github.com/en/rest?apiVersion=2022-11-28">GitHub REST API v3</a>
  */
@@ -45,7 +55,10 @@ public interface GitHubContentsContract extends Contract {
      * @param repo the repository name
      * @param branch the branch name
      * @return the current tip commit on that branch
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     @RequestLine("GET /repos/{owner}/{repo}/commits/{branch}")
     @NotNull GitHubCommit getLatestCommit(
@@ -71,7 +84,10 @@ public interface GitHubContentsContract extends Contract {
      * @param path the repo-root-relative file path
      * @param ref the branch, tag or commit sha to read at
      * @return the raw file body bytes
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     @RequestLine("GET /repos/{owner}/{repo}/contents/{path}?ref={ref}")
     byte @NotNull [] getFileContent(

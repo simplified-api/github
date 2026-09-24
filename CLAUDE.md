@@ -1,33 +1,40 @@
 # github
 
-Feign contracts and Gson DTOs for the GitHub Contents, Commits and Git Data REST APIs. Root
-`api.simplified.github.**`. Ships no client - `simplified-dev/client` executes every contract here,
-so a change to a `@RequestLine`, a return type or a required `Accept` is a change to that
-framework's contract with GitHub.
+Feign contracts and Gson DTOs for the GitHub Contents, Commits and Git Data REST APIs, and
+`GitHubCorpus`, which builds its two Contents clients through `Client.create` and reads and writes
+one repository as a document corpus. Root `api.simplified.github.**`. `simplified-dev/client`
+executes every contract here, so a change to a `@RequestLine`, a return type or a required `Accept`
+is a change to that framework's contract with GitHub, and to the corpus built on it.
 
 ## Build
 
 - Gradle `group` is **`dev.sbs`**, not `api.simplified`. The package root, the group and the JitPack
   coordinate (`com.github.simplified-api:github`) are three different spellings and none derives
   from another.
-- `client` and `gson-extras` are `api(...)` with inline `strictly()` pins; bump by editing the
-  version string in `build.gradle.kts`. Being `api` means a consumer gets `Client`, `ClientConfig`,
-  `GsonSettings` and `ConcurrentList` transitively and usually declares none of them.
+- `client`, `gson-extras` and `collections` are `api(...)` with inline `strictly()` pins; bump by
+  editing the version string in `build.gradle.kts`. Being `api` means a consumer gets `Client`,
+  `ClientConfig`, `GsonSettings` and `ConcurrentList` transitively and usually declares none of them.
+- `utils` is not declared here. `SystemUtil` and `StringUtil` arrive through the `api` dependency
+  `client` and `gson-extras` each carry on it; a `utils` pin bumps with theirs.
 - No `jitpack.yml`. JitPack builds this with its own default JDK selection, so a toolchain bump here
   is not a build-config change there.
 
 ## Gates
 
-`./gradlew test` is the whole gate. Every test builds a Gson fixture, a hand-made `ErrorContext` or
-a `GitHubCorpus` in-process, with no Spring context and nothing that waits on the network, so there
-is no slow tier and a green build needs no credentials. A corpus test hands
-`GitHubCorpus.Builder.build(reads, writes)` contracts answered from memory; that terminal makes no
-client, so such a corpus makes no request at all, and the builder's token is never applied to the
-contracts it is handed. A consumer's tests put a corpus over their own doubles through the same
-public terminal. Three cases in `GitHubCorpusBuilderTest` build through `build()`, which makes both
-real clients: each builds its Feign proxy and starts a background DNS lookup and `HEAD` probe of
-`api.github.com` whose failure is dropped, so the suite passes offline but is not silent on the
-wire.
+`./gradlew test` is the whole gate. Every test builds a Gson fixture, a hand-made `ErrorContext`, a
+`GitHubAuth` or `GitHubToken`, or a `GitHubCorpus` in-process, with no Spring context and nothing
+that waits on the network, so there is no slow tier and a green build needs no credentials. No test
+sets an environment variable or writes a `.env` file: `SystemUtil` loads its environment map once,
+when the class loads, so a variable set later is never read, and the case that needs one unset
+names it afresh from a random UUID.
+
+A corpus test hands `GitHubCorpus.Builder.build(reads, writes)` contracts answered from memory; that
+terminal makes no client, so such a corpus makes no request at all, and the builder's token is never
+applied to the contracts it is handed. A consumer's tests put a corpus over their own doubles
+through the same public terminal. Three cases in `GitHubCorpusBuilderTest` build through `build()`,
+which makes both real clients: each builds its Feign proxy and starts a background DNS lookup and
+`HEAD` probe of `api.github.com` whose failure is dropped, so the suite passes offline but is not
+silent on the wire.
 
 That also bounds what green means: the suite proves the declared shapes parse, never that the
 endpoint still answers them. A `@RequestLine`, an `Accept` requirement or a return type is verified
@@ -35,15 +42,28 @@ by one hand-run call against `api.github.com` and nothing else.
 
 ## Gson cannot read these DTOs on its own
 
-`GitTree.tree`, `GitCommit.parents` and `CreateTreeRequest.tree` are `ConcurrentList`, an interface
+`GitTree.tree`, `GitCommit.parents`, `CreateTreeRequest.tree` and `CreateCommitRequest.parents` are
+`ConcurrentList`, and `ManifestIndex.documents` is a `ConcurrentMap` of `ConcurrentList` - interfaces
 Gson has no built-in binding for. `GsonSettings.defaults()` picks up
 `dev.simplified.collection.gson.ConcurrentTypeAdapterFactory` off the classpath through
-`ServiceLoader`, and that SPI hop is the only thing that teaches it. A bare `new Gson()` fails on
-those three fields and on nothing else, so the failure looks like a Git Data problem rather than a
-Gson-construction problem.
+`ServiceLoader`, and that SPI hop is the only thing that teaches it. A bare `new Gson()` cannot read
+those fields and reads every other, so the failure looks like a Git Data or catalogue problem rather
+than a Gson-construction problem.
 
-Every response DTO's constructor is private and every request DTO's is package-private. They are
-built reflectively by the decoder; a compile error reaching for a constructor is the design working.
+Every response DTO's constructor is private and every request DTO's is package-private. A response
+DTO is built reflectively by the decoder, a request DTO through the `builder()` its `@ClassBuilder`
+generates; a compile error reaching for a constructor is the design working.
+
+## Tokens
+
+- `GitHubAuth.bearer` takes a `@Nullable` token and degrades a null or empty one to
+  `unauthenticated()`, so `System.getenv` passes straight through. The test is `StringUtil.isEmpty`,
+  not `isBlank`: a token of whitespace alone is sent.
+- `GitHubToken.of` reads through `SystemUtil.getEnv`, matching the name case-insensitively over the
+  OS environment laid on two `.env` files - the class-loader resource at `../.env` and the file
+  beside the jar or class directory `SystemUtil` was loaded from. A missing or empty value throws
+  `IllegalStateException` where the token is made; a whitespace-only one is taken and sent to
+  GitHub. `GitHubToken.value` refuses a null or empty token the same way.
 
 ## The Accept split
 

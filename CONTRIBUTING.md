@@ -25,12 +25,12 @@ Thank you for your interest in contributing! This document explains how to get s
 | Requirement | Version | Notes |
 |-------------|---------|-------|
 | JDK | **21+** | Required |
-| Gradle | 8.x | Wrapper is bundled (`./gradlew`) |
+| Gradle | 9.x | Wrapper is bundled (`./gradlew`) |
 | Git | 2.x+ | For cloning and contributing |
 | IDE | Any | IntelliJ IDEA is the recommended editor |
 
 > [!IMPORTANT]
-> This repository ships **contracts and DTOs**, not a client. Everything here is executed by [simplified-dev/client](https://github.com/simplified-dev/client), so a change to a `@RequestLine`, a return type, or an `Accept` requirement is a change to that framework's contract with GitHub. Read the surrounding Javadoc before altering one - most of them record a live constraint rather than a preference.
+> This repository ships **contracts, DTOs and `GitHubCorpus`**, which builds its two clients through `Client.create` from [simplified-dev/client](https://github.com/simplified-dev/client), pinning each to the `Accept` media type its contract needs. That framework executes every contract here, so a change to a `@RequestLine`, a return type, or an `Accept` requirement is a change to its contract with GitHub, and to the corpus built on it. Read the surrounding Javadoc before altering one - most of them record a live constraint rather than a preference.
 
 ### Development Setup
 
@@ -45,10 +45,10 @@ Thank you for your interest in contributing! This document explains how to get s
 
 2. **Verify the JDK toolchain**
 
-   Gradle's Java toolchain feature will download JDK 21 automatically if needed. Confirm with:
+   `build.gradle.kts` asks for a JDK 21 toolchain, and the build configures no toolchain download repository, so Gradle has to find a JDK 21 installed locally. List the installations it detects with:
 
    ```bash
-   ./gradlew --version
+   ./gradlew -q javaToolchains
    ```
 
 3. **Run the build**
@@ -60,18 +60,18 @@ Thank you for your interest in contributing! This document explains how to get s
    This compiles the main sources, runs the test suite, and assembles the jar.
 
    > [!NOTE]
-   > The suite passes offline - Gson fixtures, hand-built `ErrorContext` instances and corpora over contracts answered from memory, with nothing that waits on the network. A green `build` needs no credentials and no connectivity.
+   > The suite needs no credentials and passes offline. Most cases build Gson fixtures, hand-built `ErrorContext` instances, `GitHubAuth` and `GitHubToken` values, or corpora over contracts answered from memory. Three `GitHubCorpusBuilderTest` cases build through `GitHubCorpus.Builder.build()`, which makes two real clients; each starts a DNS lookup and a `HEAD` probe of `api.github.com` on a background thread and drops any failure. Building waits on neither, so those cases pass with no network, but where there is one they reach GitHub.
 
 4. **Build against local siblings (optional)**
 
-   The upstream `client` and `gson-extras` dependencies are `strictly()`-pinned to JitPack SHAs in `build.gradle.kts`. To test against unpublished sibling changes, build from the `Simplified-Api` parent instead - its `settings.gradle.kts` substitutes those coordinates for local sources.
+   The upstream `client`, `gson-extras` and `collections` dependencies are `strictly()`-pinned to JitPack SHAs in `build.gradle.kts`. To test against unpublished changes to them, build from a Gradle composite that includes this repository beside local checkouts of those libraries, each substituted for its `com.github.simplified-dev` coordinate through `includeBuild(...) { dependencySubstitution { ... } }`. In the Simplified workspace that composite is the root build: its `settings.gradle.kts` includes `Simplified-Dev` and `Simplified-Api`, and the `Simplified-Dev` settings substitute `client`, `gson-extras`, `collections` and `utils` for their local sources. The `Simplified-Api` parent substitutes only the `simplified-api` modules for one another, so building from it still resolves the pinned JitPack artifacts.
 
 ### IntelliJ IDEA
 
 1. Open the project root (the directory containing `settings.gradle.kts`). IntelliJ auto-imports the Gradle build.
 2. Ensure the **Project SDK** under **File > Project Structure** is set to a JDK 21 installation.
 3. Enable **annotation processing** - the Simplified Annotations processor generates every getter and builder in `request/` and `response/`, and the IDE reports phantom errors until the processor runs.
-4. Open the `Simplified-Api` parent instead when you need a sibling's unpublished change on the classpath; opening this repo alone resolves the pinned JitPack artifacts.
+4. Open the workspace root composite instead when you need an unpublished `client`, `gson-extras` or `collections` change on the classpath; opening this repo alone, or the `Simplified-Api` parent, resolves the pinned JitPack artifacts.
 
 ## Making Changes
 
@@ -98,14 +98,15 @@ The repository uses Simplified Annotations (`io.github.simplified-dev:annotation
 - **Field getters** - Field-like interface methods (no params, non-void return) use a noun-phrase fragment without `@return` and without "Gets"/"Returns". `@Getter` implementations carry their doc on the field, not a separate method Javadoc block.
 - **Structure** - `<p>` on its own line between paragraphs; `<ul>` / `<li>` for lists; `<b>` for emphasis inside list items.
 - **Forbidden tags** - Never use `@author` or `@since`.
-- **Upstream references** - Every contract method carries an `@see` link to the GitHub REST documentation page for its endpoint, pinned to `apiVersion=2022-11-28`.
+- **Upstream references** - Every contract's class Javadoc carries an `@see` link to the GitHub REST documentation it follows, pinned to `apiVersion=2022-11-28`.
 
 #### Control flow
 
 Omit braces on single-line bodies; use braces when the body wraps across multiple lines. Applies to all single-statement forms (`if`, `for`, `while`, `do`, lambda bodies).
 
 ```java
-if (token.isBlank()) return unauthenticated();
+if (StringUtil.isEmpty(token))
+    return unauthenticated();
 
 for (GitTree.Entry entry : tree.getTree()) {
     if (!"blob".equals(entry.getType()))
@@ -163,7 +164,7 @@ Javadoc:
 
 - One `@SerializedName` per field, spelled exactly as GitHub spells it. Do not rely on Gson's field-name matching.
 - Response DTOs get `@RequiredArgsConstructor(access = AccessLevel.PRIVATE)` - Gson builds them reflectively and nothing else should.
-- Request DTOs get `@Builder` plus `@RequiredArgsConstructor(access = AccessLevel.PACKAGE)`.
+- Request DTOs get `@Getter` plus `@ClassBuilder`, whose generated all-args constructor is package-private, so a caller builds one through `builder()`.
 - Declare only the fields a consumer reads. Gson silently ignores the rest, and every declared field is one more thing that can drift.
 - Optional upstream fields are `@Nullable` boxed types, never primitives - a missing `size` must stay distinguishable from `0`.
 
@@ -192,9 +193,11 @@ ref lookup and is always fresh.
   ./gradlew test
   ```
 
-- **Round-trip coverage** - required when your change adds or renames a DTO field. Every DTO carries a Gson round-trip test built from a fixture lifted out of GitHub's own documentation; a new field without one is a field nothing would notice going missing.
+- **Round-trip coverage** - required when your change adds or renames a DTO field. The Contents and Git Data DTOs carry Gson round-trip tests (`ContentsApiDtoRoundTripTest`, `GitDataDtoRoundTripTest`) built from fixtures lifted out of GitHub's own documentation; a new field without one is a field nothing would notice going missing.
 
 - **Classification coverage** - required when your change touches `GitHubApiException`. `GitHubApiExceptionTest` builds a primitive `ErrorContext` per case; add one per new status/header/message combination rather than widening an existing assertion.
+
+- **Token coverage** - required when your change touches `GitHubAuth` or `GitHubToken`. `GitHubAuthTest` and `GitHubTokenTest` call them directly. Neither sets an environment variable or writes a `.env` file; a case that needs a variable unset names one afresh from a random UUID.
 
 - **Corpus coverage** - required when your change touches `GitHubCorpus`. Build the corpus through `GitHubCorpus.Builder.build(reads, writes)` over contracts answered from memory, as `GitHubCorpusPollTest` does, so the case asserts which requests the corpus makes and sends none of them to GitHub.
 
@@ -255,25 +258,30 @@ api.simplified.github/
 ├── GitHubAuth.java                  # Supplier<Optional<String>> plugged into the dynamic-header slot
 ├── GitHubContentsContract.java      # read: branch tip + raw file bytes
 ├── GitHubContentsWriteContract.java # write: envelope read (for the blob SHA) + conditional PUT
+├── GitHubCorpus.java                # one repository as a corpus; builds both Contents clients, + Builder, Blob
 ├── GitHubGitDataContract.java       # blobs, trees, commits, refs - the multi-file batch path
+├── GitHubToken.java                 # the personal access token a corpus sends, refused where it is made
+├── ManifestIndex.java               # the corpus catalogue: revision + layered documents
 ├── exception/                       # GitHubApiException + the parsed GitHubErrorResponse body
-├── request/                         # outbound bodies, @Builder + package-private constructor
+├── request/                         # outbound bodies, @ClassBuilder + package-private constructor
 └── response/                        # inbound mirrors, private constructor, Gson-built
 ```
 
 ### Request flow
 
 ```
-caller -> Client<C>.getContract()          # JDK proxy unwrapping RetryableApiException
+caller or GitHubCorpus
+  -> Client<C>.getContract()                # JDK proxy unwrapping RetryableApiException
   -> Feign proxy                            # @RequestLine expansion, Gson encode
-  -> InternalRequestInterceptor             # rate-limit gate, If-None-Match auto-attach
-  -> CachingFeignClient                     # RFC 7234 fresh-hit short circuit, 304 replay
+  -> InternalRequestInterceptor             # route rate-limit gate, target URL
+  -> CachingFeignClient                     # RFC 7234 fresh-hit short circuit, If-None-Match, 304 replay
   -> Apache HTTP/5                          # pooled, timed (DNS / TCP / TLS)
-  -> InternalErrorDecoder                   # 3xx -> NotModifiedException, else per-client decoder
-  -> GitHubApiException                     # non-2xx, body decoded to GitHubErrorResponse
+  -> InternalErrorDecoder                   # 3xx -> NotModifiedException, 412 -> PreconditionFailedException,
+                                            # 429 -> RateLimitException, else the per-client decoder
+  -> GitHubApiException                     # every other non-2xx, body decoded to GitHubErrorResponse
 ```
 
-Nothing in this repository implements any of that pipeline - the contracts declare what to send and what comes back, and `simplified-dev/client` runs it.
+Beyond `GitHubApiException`, this repository implements none of that pipeline. The contracts declare what to send and what comes back, `GitHubCorpus` assembles its two clients - the `Accept` media type, the API version header, the auth and `GitHubApiException::new` as the per-client decoder - and `simplified-dev/client` runs the rest.
 
 ### Write paths
 

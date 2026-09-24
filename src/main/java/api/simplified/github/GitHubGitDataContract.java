@@ -10,6 +10,10 @@ import api.simplified.github.response.GitCommit;
 import api.simplified.github.response.GitHubCommit;
 import api.simplified.github.response.GitRef;
 import api.simplified.github.response.GitTree;
+import dev.simplified.client.Client;
+import dev.simplified.client.exception.NotModifiedException;
+import dev.simplified.client.exception.PreconditionFailedException;
+import dev.simplified.client.exception.RateLimitException;
 import dev.simplified.client.request.Contract;
 import dev.simplified.client.route.Route;
 import feign.Param;
@@ -27,6 +31,12 @@ import org.jetbrains.annotations.NotNull;
  * git objects that are not reachable from any branch until {@link #updateRef} moves a ref onto
  * the new commit SHA.
  *
+ * <p>The failures each method documents are those of a {@link Client} configured with
+ * {@code withErrorDecoder(GitHubApiException::new)}. The client raises
+ * {@link NotModifiedException} for a 3xx status, {@link PreconditionFailedException} for a 412 and
+ * {@link RateLimitException} for a 429 before its error decoder runs, and hands every other non-2xx
+ * status to {@link GitHubApiException}.
+ *
  * @see <a href="https://docs.github.com/en/rest/git?apiVersion=2022-11-28">GitHub Git Database API</a>
  */
 @Route("api.github.com")
@@ -42,7 +52,10 @@ public interface GitHubGitDataContract extends Contract {
      * @param repo the repository name
      * @param branch the branch name
      * @return the current ref including the target commit SHA
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     @RequestLine("GET /repos/{owner}/{repo}/git/refs/heads/{branch}")
     @NotNull GitRef getRef(
@@ -62,7 +75,10 @@ public interface GitHubGitDataContract extends Contract {
      * @param repo the repository name
      * @param sha the commit SHA
      * @return the commit object
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     @RequestLine("GET /repos/{owner}/{repo}/git/commits/{sha}")
     @NotNull GitCommit getCommit(
@@ -83,7 +99,10 @@ public interface GitHubGitDataContract extends Contract {
      * @param sha the tree SHA
      * @param recursive {@code "1"} to expand subtrees inline, {@code "0"} or empty otherwise
      * @return the tree object
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     @RequestLine("GET /repos/{owner}/{repo}/git/trees/{sha}?recursive={recursive}")
     @NotNull GitTree getTree(
@@ -104,7 +123,10 @@ public interface GitHubGitDataContract extends Contract {
      * @param repo the repository name
      * @param body the blob content and encoding
      * @return the created blob reference
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     @RequestLine("POST /repos/{owner}/{repo}/git/blobs")
     @NotNull GitBlob createBlob(
@@ -121,7 +143,10 @@ public interface GitHubGitDataContract extends Contract {
      * @param repo the repository name
      * @param body the tree entries plus optional {@code base_tree} SHA
      * @return the created tree object
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     @RequestLine("POST /repos/{owner}/{repo}/git/trees")
     @NotNull GitTree createTree(
@@ -140,7 +165,10 @@ public interface GitHubGitDataContract extends Contract {
      * @param repo the repository name
      * @param body the commit metadata plus tree and parent SHAs
      * @return the created commit object
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     @RequestLine("POST /repos/{owner}/{repo}/git/commits")
     @NotNull GitCommit createCommit(
@@ -162,7 +190,10 @@ public interface GitHubGitDataContract extends Contract {
      * @param branch the branch name
      * @param body the new SHA and optional force flag
      * @return the updated ref reflecting the new target
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     @RequestLine("PATCH /repos/{owner}/{repo}/git/refs/heads/{branch}")
     @NotNull GitRef updateRef(

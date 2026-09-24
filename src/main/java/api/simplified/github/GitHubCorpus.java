@@ -5,6 +5,9 @@ import api.simplified.github.request.PutContentRequest;
 import com.google.gson.Gson;
 import dev.simplified.client.Client;
 import dev.simplified.client.ClientConfig;
+import dev.simplified.client.exception.NotModifiedException;
+import dev.simplified.client.exception.PreconditionFailedException;
+import dev.simplified.client.exception.RateLimitException;
 import dev.simplified.client.request.Contract;
 import dev.simplified.gson.GsonSettings;
 import org.jetbrains.annotations.NotNull;
@@ -38,6 +41,12 @@ import java.util.Optional;
  * <p>The catalogue is always read at a commit sha rather than at the branch. A branch read can be
  * answered from the client's response cache for up to a minute after the branch moves, where a
  * commit names content that never changes.
+ *
+ * <p>The failures each request method documents are those of the clients {@link Builder#build()}
+ * makes, which raise {@link NotModifiedException} for a 3xx status,
+ * {@link PreconditionFailedException} for a 412, {@link RateLimitException} for a 429 and
+ * {@link GitHubApiException} for any other non-2xx status. A corpus built over contracts the
+ * caller supplies raises whatever those contracts raise.
  *
  * @see GitHubToken
  * @see ManifestIndex
@@ -131,7 +140,10 @@ public final class GitHubCorpus {
      *
      * @param path the repo-root-relative file path
      * @return the file content, decoded as UTF-8
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     public @NotNull String read(@NotNull String path) throws GitHubApiException {
         return this.read(path, this.branch);
@@ -146,7 +158,10 @@ public final class GitHubCorpus {
      * @param path the repo-root-relative file path
      * @param ref the commit sha, branch or tag to read at
      * @return the file content, decoded as UTF-8
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     public @NotNull String read(@NotNull String path, @NotNull String ref) throws GitHubApiException {
         return new String(this.reads.getFileContent(this.owner, this.repo, path, ref), StandardCharsets.UTF_8);
@@ -163,7 +178,10 @@ public final class GitHubCorpus {
      *
      * @param path the repo-root-relative file path
      * @return the file's text and the blob sha of its bytes, read at the branch
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     public @NotNull Blob blob(@NotNull String path) throws GitHubApiException {
         byte[] bytes = this.reads.getFileContent(this.owner, this.repo, path, this.branch);
@@ -175,7 +193,10 @@ public final class GitHubCorpus {
      *
      * @param path the repo-root-relative file path
      * @return the git blob sha at the branch tip
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     public @NotNull String metadata(@NotNull String path) throws GitHubApiException {
         return this.writes.getFileMetadata(this.owner, this.repo, path, this.branch).getSha();
@@ -192,7 +213,11 @@ public final class GitHubCorpus {
      * @param content the text to commit
      * @param sha the blob sha the caller expects the file to still carry
      * @param message the commit message
-     * @throws GitHubApiException on any non-2xx status, including the conflict a stale sha raises
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429, including the
+     *         conflict a stale sha raises
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     public void write(
         @NotNull String path,
@@ -217,7 +242,10 @@ public final class GitHubCorpus {
      * Reads the commit the branch currently points at.
      *
      * @return the tip commit sha
-     * @throws GitHubApiException on any non-2xx status
+     * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
+     * @throws NotModifiedException on a 3xx status
+     * @throws PreconditionFailedException on a 412 status
+     * @throws RateLimitException on a 429 status
      */
     public @NotNull String tip() throws GitHubApiException {
         return this.reads.getLatestCommit(this.owner, this.repo, this.branch).getSha();
@@ -230,7 +258,11 @@ public final class GitHubCorpus {
      * so {@link #manifestCommit()} names the commit the catalogue came from.
      *
      * @return the catalogue
-     * @throws GitHubApiException if the tip or the catalogue cannot be fetched
+     * @throws GitHubApiException if the tip or the catalogue read answers a non-2xx status other
+     *         than a 3xx, a 412 or a 429
+     * @throws NotModifiedException if either read answers a 3xx status
+     * @throws PreconditionFailedException if either read answers a 412 status
+     * @throws RateLimitException if either read answers a 429 status
      * @throws IllegalStateException if the repository answers a body that is no catalogue
      */
     public @NotNull ManifestIndex manifest() throws GitHubApiException {
@@ -255,7 +287,11 @@ public final class GitHubCorpus {
      * the client's response cache keeps the answer.
      *
      * @return the commit sha
-     * @throws GitHubApiException if the tip or the catalogue cannot be fetched
+     * @throws GitHubApiException if the tip or the catalogue read answers a non-2xx status other
+     *         than a 3xx, a 412 or a 429
+     * @throws NotModifiedException if either read answers a 3xx status
+     * @throws PreconditionFailedException if either read answers a 412 status
+     * @throws RateLimitException if either read answers a 429 status
      * @throws IllegalStateException if the repository answers a body that is no catalogue
      */
     public @NotNull String manifestCommit() throws GitHubApiException {
@@ -273,7 +309,11 @@ public final class GitHubCorpus {
      * never to whoever noticed.
      *
      * @return the new catalogue, empty when the branch is still at the tip the held one was read at
-     * @throws GitHubApiException if the tip or the catalogue cannot be read
+     * @throws GitHubApiException if the tip or the catalogue read answers a non-2xx status other
+     *         than a 3xx, a 412 or a 429
+     * @throws NotModifiedException if either read answers a 3xx status
+     * @throws PreconditionFailedException if either read answers a 412 status
+     * @throws RateLimitException if either read answers a 429 status
      * @throws IllegalStateException if the repository answers a body that is no catalogue
      */
     public synchronized @NotNull Optional<ManifestIndex> poll() throws GitHubApiException {
@@ -293,7 +333,11 @@ public final class GitHubCorpus {
      *
      * @param commit the commit sha to read the catalogue at
      * @return the catalogue now held
-     * @throws GitHubApiException if the catalogue cannot be read
+     * @throws GitHubApiException if the catalogue read answers a non-2xx status other than a 3xx, a
+     *         412 or a 429
+     * @throws NotModifiedException if the catalogue read answers a 3xx status
+     * @throws PreconditionFailedException if the catalogue read answers a 412 status
+     * @throws RateLimitException if the catalogue read answers a 429 status
      * @throws IllegalStateException if the repository answers a body that is no catalogue
      */
     private @NotNull ManifestIndex hold(@NotNull String commit) throws GitHubApiException {
