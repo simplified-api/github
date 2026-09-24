@@ -87,7 +87,7 @@ Name the repository, then build a corpus and read through it. The corpus makes b
 // repository root, and a corpus named with no token reads unauthenticated.
 GitHubCorpus corpus = GitHubCorpus.of("simplified-api", "skyblock")
     .manifest("data/v1/index.json")
-    .token(GitHubToken.of("GITHUB_TOKEN"))   // reads the variable here; unset or blank throws
+    .token(GitHubToken.of("GITHUB_TOKEN"))   // reads the variable here; unset or empty throws
     .build();
 
 String tip = corpus.tip();                                           // the branch's commit sha
@@ -120,9 +120,11 @@ The builder has two terminals:
 `GitHubToken` is the token a corpus sends, checked where it is made rather than as a `401` on the first write:
 
 ```java
-GitHubToken.of("GITHUB_TOKEN")   // reads the environment variable; unset or blank throws IllegalStateException
-GitHubToken.value(token)         // a token the caller already holds; blank throws IllegalStateException
+GitHubToken.of("GITHUB_TOKEN")   // reads the variable; unset or empty throws IllegalStateException
+GitHubToken.value(token)         // a token the caller already holds; null or empty throws IllegalStateException
 ```
+
+`of` reads through `SystemUtil.getEnv` from `simplified-dev/utils`, which matches the name case-insensitively and reads the OS environment over two `.env` files - the class-loader resource at `../.env`, and the file beside the jar or class directory `SystemUtil` was loaded from - so a variable spelled the same in the OS environment and in a file is read from the OS environment. A value of whitespace alone is not empty, so it is taken as a token and sent to GitHub rather than refused here.
 
 A write needs one. A read does not, but an unauthenticated corpus shares the 60-requests-per-hour budget of its address.
 
@@ -188,10 +190,9 @@ Every request line names its ref. `getLatestCommit(owner, repo, branch)` answers
 Build one `Client` per contract, then call the contract proxy. Owner, repository and ref are method arguments, so a single client serves every repository you touch:
 
 ```java
-// 1. The Authorization header is a dynamic supplier, evaluated per request. A blank token
-//    degrades to unauthenticated rather than failing the proxy build; an unset variable is
-//    null, which bearer does not take, so it is read as blank here.
-GitHubAuth auth = GitHubAuth.bearer(Objects.requireNonNullElse(System.getenv("GITHUB_TOKEN"), ""));
+// 1. The Authorization header is a dynamic supplier, evaluated per request. A null or empty
+//    token - an unset or empty variable - degrades to unauthenticated rather than failing.
+GitHubAuth auth = GitHubAuth.bearer(System.getenv("GITHUB_TOKEN"));
 
 // 2. The read client pins the raw media type. Without it the Contents endpoint answers a
 //    base64 envelope capped at 1 MB and rejects anything larger.
@@ -227,18 +228,19 @@ System.out.printf("%s at %s (%d bytes)%n",
 ```java
 GitHubAuth.bearer("ghp_...")     // Optional.of("Bearer ghp_...")
 GitHubAuth.bearer("")            // degrades to unauthenticated
+GitHubAuth.bearer(null)          // degrades to unauthenticated
 GitHubAuth.unauthenticated()     // always Optional.empty()
 ```
 
 | Mode | Budget | Trigger |
 |------|--------|---------|
-| Unauthenticated | 60 requests / hour / IP | No token, or a blank one |
-| Authenticated (PAT) | 5000 requests / hour | Non-blank token |
+| Unauthenticated | 60 requests / hour / IP | No token, or a null or empty one |
+| Authenticated (PAT) | 5000 requests / hour | Any other token |
 
 > [!TIP]
-> A blank token degrading instead of throwing is what lets a variable set to an empty string pass straight through to `bearer(...)` without a branch at the call site. An unset variable reads as `null`, which `bearer` does not accept, so it goes through `Objects.requireNonNullElse(..., "")` first. Public-repo reads still succeed; the budget is what changes.
+> A null or empty token degrading instead of throwing is what lets `System.getenv(...)` pass straight through to `bearer(...)` without a branch at the call site, whether the variable is unset or set to an empty string. Public-repo reads still succeed; the budget is what changes. A token of whitespace alone is not empty, so `bearer` sends it.
 
-`GitHubCorpus` takes a `GitHubToken` instead, which refuses an unset or blank variable where it is read, and hands each of its clients a bearer `GitHubAuth` over it; a corpus named with no token uses `GitHubAuth.unauthenticated()`.
+`GitHubCorpus` takes a `GitHubToken` instead, which refuses an unset or empty variable where it is read, and hands each of its clients a bearer `GitHubAuth` over it; a corpus named with no token uses `GitHubAuth.unauthenticated()`.
 
 ## Error Handling
 
@@ -322,7 +324,7 @@ Leaving `force` unset (or `false`) on `updateRef` makes GitHub enforce the fast-
 ./gradlew test        # JUnit 5 suite
 ```
 
-The whole suite passes offline. Every test builds Gson fixtures, a hand-made `ErrorContext` or a `GitHubCorpus` in-process, with no Spring context and nothing that waits on the network, so `test` is the complete gate and there is no slow tier. A corpus test builds through `GitHubCorpus.Builder.build(reads, writes)` over contracts answered from memory and makes no request; the three `GitHubCorpusBuilderTest` cases that build through `build()` make real clients, which probe `api.github.com` in the background and drop any failure.
+The whole suite passes offline. Every test builds Gson fixtures, a hand-made `ErrorContext`, a `GitHubAuth` or `GitHubToken`, or a `GitHubCorpus` in-process, with no Spring context and nothing that waits on the network, so `test` is the complete gate and there is no slow tier. No test sets an environment variable or writes a `.env` file; the one that reads an unset variable names one from a random UUID. A corpus test builds through `GitHubCorpus.Builder.build(reads, writes)` over contracts answered from memory and makes no request; the three `GitHubCorpusBuilderTest` cases that build through `build()` make real clients, which probe `api.github.com` in the background and drop any failure.
 
 ## Package Structure
 
@@ -341,8 +343,8 @@ github/
 │   │   ├── request/                           # PutContentRequest, CreateBlob/Tree/CommitRequest, UpdateRefRequest
 │   │   └── response/                          # GitHubCommit, GitHubContentEnvelope, GitHubPutResponse,
 │   │                                          #   GitBlob, GitTree, GitCommit, GitRef
-│   └── test/java/                             # Gson round-trip, 403/429 classification, catalogue
-│                                              #   and GitHubCorpus tests
+│   └── test/java/                             # Gson round-trip, 403/429 classification, auth and token,
+│                                              #   catalogue and GitHubCorpus tests
 ├── build.gradle.kts  settings.gradle.kts  gradle.properties  gradle/libs.versions.toml
 └── LICENSE.md  CONTRIBUTING.md  CLAUDE.md
 ```
