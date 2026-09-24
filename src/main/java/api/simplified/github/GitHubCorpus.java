@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -23,10 +24,16 @@ import java.util.Optional;
  * write needs - so a second hand-built pair drifts the moment one of them is copied without the
  * other. Nothing stops that except having nothing to copy.
  *
- * <p>Everything here deals in paths, bytes and shas: {@link #read} answers a file's text,
- * {@link #metadata} its blob sha, {@link #write} replaces it, {@link #tip} answers the branch tip
- * and {@link #manifest} the catalogue the corpus publishes. What any of that means to a consumer's
- * types is the consumer's, and nothing about a corpus assumes there is one.
+ * <p>Everything here deals in paths, bytes and shas: {@link #read} answers a file's text at the branch
+ * or at a named commit, {@link #metadata} its blob sha, {@link #write} replaces it, {@link #tip}
+ * answers the branch tip, {@link #manifest} the catalogue the corpus publishes and
+ * {@link #manifestCommit} the commit that catalogue was read at, and {@link #poll} replaces the held
+ * catalogue once the branch moves. What any of that means to a consumer's types is the consumer's,
+ * and nothing about a corpus assumes there is one.
+ *
+ * <p>The catalogue is always read at a commit sha rather than at the branch. A branch read can be
+ * answered from the client's response cache for up to a minute after the branch moves, where a
+ * commit names content that never changes.
  *
  * @see GitHubToken
  * @see ManifestIndex
@@ -50,19 +57,43 @@ public final class GitHubCorpus {
      */
     private volatile @Nullable ManifestIndex manifest;
 
+    /**
+     * The branch tip the held catalogue was read at, or {@code null} before one.
+     */
+    private volatile @Nullable String manifestCommit;
+
     private GitHubCorpus(@NotNull Builder builder) {
+        this(builder, builder.token == null ? GitHubAuth.unauthenticated() : builder.token.auth());
+    }
+
+    private GitHubCorpus(@NotNull Builder builder, @NotNull GitHubAuth auth) {
+        this(
+            builder,
+            contract(GitHubContentsContract.class, RAW_ACCEPT, auth, builder.gsonSettings),
+            contract(GitHubContentsWriteContract.class, JSON_ACCEPT, auth, GsonSettings.defaults())
+        );
+    }
+
+    /**
+     * Constructs a corpus over contracts the caller supplies, which is how a test answers the
+     * requests with no network.
+     *
+     * @param builder the repository, branch, catalogue path and parser settings
+     * @param reads the contract files and the branch tip are read through
+     * @param writes the contract blob shas are read and files are written through
+     */
+    GitHubCorpus(
+        @NotNull Builder builder,
+        @NotNull GitHubContentsContract reads,
+        @NotNull GitHubContentsWriteContract writes
+    ) {
         this.owner = builder.owner;
         this.repo = builder.repo;
         this.branch = builder.branch;
         this.manifestPath = builder.manifestPath;
         this.gson = builder.gsonSettings.create();
-
-        GitHubAuth auth = builder.token == null
-            ? GitHubAuth.unauthenticated()
-            : builder.token.auth();
-
-        this.reads = contract(GitHubContentsContract.class, RAW_ACCEPT, auth, builder.gsonSettings);
-        this.writes = contract(GitHubContentsWriteContract.class, JSON_ACCEPT, auth, GsonSettings.defaults());
+        this.reads = reads;
+        this.writes = writes;
     }
 
     /**
@@ -89,14 +120,32 @@ public final class GitHubCorpus {
     }
 
     /**
-     * Reads the text of one file.
+     * Reads the text of one file at the branch.
+     *
+     * <p>The client's response cache can answer this from before the branch moved, for up to a
+     * minute. A caller that needs the text exactly as some commit holds it reads at that commit.
      *
      * @param path the repo-root-relative file path
      * @return the file content, decoded as UTF-8
      * @throws GitHubApiException on any non-2xx status
      */
     public @NotNull String read(@NotNull String path) throws GitHubApiException {
-        return new String(this.reads.getFileContent(this.owner, this.repo, path, this.branch), StandardCharsets.UTF_8);
+        return this.read(path, this.branch);
+    }
+
+    /**
+     * Reads the text of one file at a commit or a ref.
+     *
+     * <p>A commit sha names content that never changes, so a read at one answers the same text
+     * however long the client's response cache holds it.
+     *
+     * @param path the repo-root-relative file path
+     * @param ref the commit sha, branch or tag to read at
+     * @return the file content, decoded as UTF-8
+     * @throws GitHubApiException on any non-2xx status
+     */
+    public @NotNull String read(@NotNull String path, @NotNull String ref) throws GitHubApiException {
+        return new String(this.reads.getFileContent(this.owner, this.repo, path, ref), StandardCharsets.UTF_8);
     }
 
     /**
@@ -153,10 +202,13 @@ public final class GitHubCorpus {
     }
 
     /**
-     * The corpus catalogue, fetched once and held.
+     * The corpus catalogue, fetched once and held until {@link #poll()} replaces it.
+     *
+     * <p>The first fetch reads the branch tip and then the catalogue at that commit, and holds both,
+     * so {@link #manifestCommit()} names the commit the catalogue came from.
      *
      * @return the catalogue
-     * @throws GitHubApiException if the catalogue cannot be fetched
+     * @throws GitHubApiException if the tip or the catalogue cannot be fetched
      * @throws IllegalStateException if the repository answers a body that is no catalogue
      */
     public @NotNull ManifestIndex manifest() throws GitHubApiException {
@@ -165,7 +217,7 @@ public final class GitHubCorpus {
         if (held == null) {
             synchronized (this) {
                 if (this.manifest == null)
-                    this.manifest = this.fetchManifest();
+                    this.hold(this.tip());
 
                 held = this.manifest;
             }
@@ -175,34 +227,63 @@ public final class GitHubCorpus {
     }
 
     /**
-     * Asks whether the corpus has moved since the held catalogue was taken.
+     * The branch tip the held catalogue was read at, fetching the catalogue first when none is held.
      *
-     * <p>One request rules out the whole corpus, because a revision that has not moved cannot have
-     * moved any document under it. The answer is a catalogue rather than an instruction: what to do
-     * about a change belongs to whoever consumes it, never to whoever noticed.
+     * <p>A file read at this commit comes out of the same tree the held catalogue did, however long
+     * the client's response cache keeps the answer.
      *
-     * @return the new catalogue, empty when the corpus is still at the held revision
-     * @throws GitHubApiException if the tip commit cannot be read
+     * @return the commit sha
+     * @throws GitHubApiException if the tip or the catalogue cannot be fetched
+     * @throws IllegalStateException if the repository answers a body that is no catalogue
      */
-    public @NotNull Optional<ManifestIndex> poll() throws GitHubApiException {
-        ManifestIndex held = this.manifest;
-
-        if (held != null && held.getRevision().equals(this.tip()))
-            return Optional.empty();
-
-        ManifestIndex fetched = this.fetchManifest();
-        this.manifest = fetched;
-        return Optional.of(fetched);
+    public @NotNull String manifestCommit() throws GitHubApiException {
+        this.manifest();
+        return Objects.requireNonNull(this.manifestCommit);
     }
 
-    private @NotNull ManifestIndex fetchManifest() throws GitHubApiException {
-        ManifestIndex fetched = this.gson.fromJson(this.read(this.manifestPath), ManifestIndex.class);
+    /**
+     * Asks whether the branch has moved since the held catalogue was read.
+     *
+     * <p>One request rules out the whole corpus: a tip that has not moved cannot have moved any file
+     * under it. When it has, the catalogue is read at the new tip - a commit, which the client's
+     * response cache cannot answer from before the move - and held with that tip. The answer is a
+     * catalogue rather than an instruction: what to do about a change belongs to whoever consumes it,
+     * never to whoever noticed.
+     *
+     * @return the new catalogue, empty when the branch is still at the tip the held one was read at
+     * @throws GitHubApiException if the tip or the catalogue cannot be read
+     * @throws IllegalStateException if the repository answers a body that is no catalogue
+     */
+    public synchronized @NotNull Optional<ManifestIndex> poll() throws GitHubApiException {
+        String tip = this.tip();
+
+        if (this.manifest != null && tip.equals(this.manifestCommit))
+            return Optional.empty();
+
+        return Optional.of(this.hold(tip));
+    }
+
+    /**
+     * Reads the catalogue at one commit and holds it with that commit.
+     *
+     * <p>The commit is published before the catalogue, so a reader that finds a catalogue held also
+     * finds the commit it was read at.
+     *
+     * @param commit the commit sha to read the catalogue at
+     * @return the catalogue now held
+     * @throws GitHubApiException if the catalogue cannot be read
+     * @throws IllegalStateException if the repository answers a body that is no catalogue
+     */
+    private @NotNull ManifestIndex hold(@NotNull String commit) throws GitHubApiException {
+        ManifestIndex fetched = this.gson.fromJson(this.read(this.manifestPath, commit), ManifestIndex.class);
 
         if (fetched == null)
             throw new IllegalStateException(
                 String.format("'%s/%s' answered no catalogue at '%s'", this.owner, this.repo, this.manifestPath)
             );
 
+        this.manifestCommit = commit;
+        this.manifest = fetched;
         return fetched;
     }
 

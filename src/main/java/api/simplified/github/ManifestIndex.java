@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
  * A corpus catalogue: the revision it was taken at, and the ordered layers each logical document is
  * made of.
  *
- * <p>It names no Java class and no repository. A logical name is the document's own name, which is
+ * <p>It names no Java class, no repository and not the commit carrying it. A logical name is the document's own name, which is
  * also the file stem, so a consumer resolves whatever it holds to a document without the catalogue
  * having to know one exists. Any origin that can publish a revision and a list of hashed paths is
  * describable this way.
@@ -30,8 +30,12 @@ import java.util.stream.Collectors;
 public final class ManifestIndex {
 
     /**
-     * The origin revision this catalogue was taken at, which a poller compares to rule out the whole
-     * corpus in one request.
+     * The commit the generator's checkout stood at when it took this catalogue, empty where it had
+     * none.
+     *
+     * <p>It is never the commit carrying the catalogue, which is committed after it is generated, so
+     * it names no branch tip. Where the walk covered files not yet committed, the documents at this
+     * commit are not the ones the catalogue fingerprints.
      */
     private final @NotNull String revision;
 

@@ -55,7 +55,7 @@ public interface GitHubContentsContract extends Contract {
     ) throws GitHubApiException;
 
     /**
-     * Fetches the raw file body at the given path on the given branch.
+     * Fetches the raw file body at the given path as the given ref holds it.
      *
      * <p>Returns the literal file bytes when the client is configured with the
      * {@code application/vnd.github.raw+json} media type. The return type is {@code byte[]}
@@ -63,19 +63,22 @@ public interface GitHubContentsContract extends Contract {
      * raw JSON bodies when the target type is {@code String}, which fails on JSON-object
      * bodies. Routing through the binary-body decoder avoids that path entirely.
      *
+     * <p>The ref is a branch, a tag or a commit sha. A commit sha names content that never changes,
+     * so a cached answer for one is never out of date.
+     *
      * @param owner the repository owner login
      * @param repo the repository name
      * @param path the repo-root-relative file path
-     * @param branch the branch name
+     * @param ref the branch, tag or commit sha to read at
      * @return the raw file body bytes
      * @throws GitHubApiException on any non-2xx status
      */
-    @RequestLine("GET /repos/{owner}/{repo}/contents/{path}?ref={branch}")
+    @RequestLine("GET /repos/{owner}/{repo}/contents/{path}?ref={ref}")
     byte @NotNull [] getFileContent(
         @Param("owner") @NotNull String owner,
         @Param("repo") @NotNull String repo,
         @Param("path") @NotNull String path,
-        @Param("branch") @NotNull String branch
+        @Param("ref") @NotNull String ref
     ) throws GitHubApiException;
 
 }

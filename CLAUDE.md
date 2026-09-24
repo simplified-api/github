@@ -18,9 +18,9 @@ framework's contract with GitHub.
 
 ## Gates
 
-`./gradlew test` is the whole gate. Every test builds a Gson fixture or a hand-made `ErrorContext`
-in-process - no network, no Feign proxy, no Spring context - so there is no slow tier and a green
-build needs no credentials.
+`./gradlew test` is the whole gate. Every test builds a Gson fixture, a hand-made `ErrorContext`
+or a `GitHubCorpus` over contracts answered from memory, in-process - no network, no Feign proxy, no
+Spring context - so there is no slow tier and a green build needs no credentials.
 
 That also bounds what green means: the suite proves the declared shapes parse, never that the
 endpoint still answers them. A `@RequestLine`, an `Accept` requirement or a return type is verified
@@ -55,17 +55,21 @@ carries a single static header set and they need different `Accept` values.
 JSON parse when the declared return type is `String`, which fails on any JSON-object file body.
 Routing through the binary-body decoder is what avoids that path.
 
-## Branch handling is not uniform
+## Refs
 
-Every read request line hardcodes `master` - `commits/master`, `contents/{path}?ref=master` on both
-Contents contracts. Only `PutContentRequest.branch` is parameterised.
+Every request line takes its ref as a parameter - `commits/{branch}`, `contents/{path}?ref={ref}` on
+the read contract and `?ref={branch}` on the write contract - and `PutContentRequest.branch` names
+the branch a write commits to. `GitHubCorpus` hands its one branch to the tip read, the blob-sha read
+and the write, so the concurrency token is read off the branch it is checked against.
 
-Setting that field to anything but `master` reads the blob SHA off master and writes it against a
-different branch's tip, so the concurrency token is checked against a file it was never read from.
-Either leave `branch` unset or parameterise the `ref` on `getFileMetadata` in the same change.
+`GitHubCorpus` reads its catalogue at a commit sha - the tip it just resolved - and never at the
+branch. A branch read can be replayed from the client's response cache for up to a minute after the
+branch moves; a commit names content that never changes. `poll()` compares the tip against the tip
+the held catalogue was read at, not against the catalogue's `revision`, which the generator records
+before the catalogue is committed and so never equals a tip.
 
-`getLatestMasterCommit` uses the single-commit-by-ref endpoint. Do not switch it to
-`/commits?sha=master&per_page=1` - the listing endpoint is served from GitHub's 60-second edge cache
+`getLatestCommit` uses the single-commit-by-ref endpoint. Do not switch it to
+`/commits?sha={branch}&per_page=1` - the listing endpoint is served from GitHub's 60-second edge cache
 and answers a stale SHA for up to a minute after a push, where the by-ref form resolves through the
 git ref lookup.
 
