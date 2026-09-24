@@ -1,5 +1,6 @@
 package api.simplified.github.response;
 
+import api.simplified.github.exception.GitHubApiException;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import dev.simplified.annotations.AccessLevel;
@@ -17,9 +18,9 @@ import org.jetbrains.annotations.NotNull;
  * git <b>blob</b> SHA of the file at the branch tip. The write path uses this value
  * as the optimistic-concurrency token on the follow-up
  * {@code PUT /repos/{owner}/{repo}/contents/{path}} call: if another writer committed
- * to the same path between the GET and the PUT, GitHub returns {@code 409} or
- * {@code 422} (historically documented as {@code 409 Conflict}), mapped by the
- * framework to {@code PreconditionFailedException}.
+ * to the same path between the GET and the PUT, GitHub refuses the write with a
+ * {@code 409 Conflict} or a {@code 422 Validation failed}, which reaches the caller as a
+ * {@link GitHubApiException} carrying that status.
  *
  * <p>Instances are produced by {@link Gson#fromJson} inside the
  * {@link Client} response decoder pipeline - never constructed

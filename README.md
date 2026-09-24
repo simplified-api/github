@@ -155,7 +155,7 @@ corpus.write("data/v1/items/accessories.json", edited, current.sha(), "Update ac
 
 `poll()` asks whether the branch has moved since the held catalogue was read. One tip request rules out the whole corpus: when the tip is the one the held catalogue was read at, it answers empty and reads nothing more. Otherwise it reads the catalogue at the new tip, holds it with that tip, and answers it. What to do about the change is the caller's.
 
-Both read the catalogue at a commit sha rather than at the branch, so the catalogue read is never answered from before the branch moved. The tip read is a branch read, though, and the client's response cache can answer it for up to a minute, so a poll inside that minute can report no move for a branch that has moved. A body that parses to no catalogue throws `IllegalStateException`.
+Both read the catalogue at a commit sha rather than at the branch, so the catalogue read is never answered from before the branch moved. The tip read is a branch read, though, and the client's response cache can answer it for up to a minute, so a poll inside that minute can report no move for a branch that has moved. A catalogue body that is empty or the JSON literal `null` throws `IllegalStateException`, and one that is malformed or does not read as a catalogue object throws Gson's `JsonSyntaxException`; either way the corpus keeps the catalogue it held before, if any.
 
 The catalogue names each logical document's layers in merge order:
 
@@ -242,9 +242,11 @@ GitHubAuth.unauthenticated()     // always Optional.empty()
 
 `GitHubCorpus` takes a `GitHubToken` instead, which refuses an unset or empty variable where it is read, and hands each of its clients a bearer `GitHubAuth` over it; a corpus named with no token uses `GitHubAuth.unauthenticated()`.
 
+Each client keeps the budget GitHub reports. `simplified-dev/client` holds one rate-limit bucket for `api.github.com` and sets it from the `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` headers of every live response. Once the bucket has no request left, the client refuses the next one with `RateLimitException` before sending it, and keeps refusing until the reset GitHub named. A reply served from the client's response cache counts against the bucket as well, until the next live response brings the count back to GitHub's figure.
+
 ## Error Handling
 
-A non-2xx status surfaces as `GitHubApiException`, which carries the full response - status, headers, body, network timings, and the originating request - and lazily decodes the body into `GitHubErrorResponse`. Three kinds of status are the framework's before they are GitHub's: a 3xx surfaces as `NotModifiedException`, a `412` as `PreconditionFailedException` and a `429` as `RateLimitException`, each raised by `simplified-dev/client` before the GitHub decoder runs and none of them a `GitHubApiException`.
+A non-2xx status surfaces as `GitHubApiException`, which carries the full response - status, headers, body, network timings, and the originating request - and lazily decodes the body into `GitHubErrorResponse`. Three kinds of status are the framework's before they are GitHub's: a 3xx surfaces as `NotModifiedException`, a `412` as `PreconditionFailedException` and a `429` as `RateLimitException`, each raised by `simplified-dev/client` before the GitHub decoder runs and none of them a `GitHubApiException`. `RateLimitException` also arrives with no request sent, when the client's rate-limit gate refuses one (see [Authentication and Rate Limits](#authentication-and-rate-limits)).
 
 ```java
 try {
@@ -269,7 +271,7 @@ try {
 
 Requiring both the header and the message on the primary check is deliberate: either signal alone moves when GitHub tweaks its wording or its header set, and the pair does not.
 
-The helpers accept a `429`, but a `429` surfaces as `RateLimitException` before `GitHubApiException` is built, so in practice they classify a `403`. A caller that wants both rate-limit shapes catches `RateLimitException` as well.
+The helpers accept a `429`, but a `429` surfaces as `RateLimitException` before `GitHubApiException` is built, so in practice they classify a `403`. A primary-limit `403` carries `x-ratelimit-remaining: 0`, which empties the client's bucket, so every later request until GitHub's reset is refused as `RateLimitException` without being sent. A caller that wants every rate-limit shape catches `RateLimitException` as well.
 
 > [!NOTE]
 > A `304 Not Modified` never reaches `GitHubApiException`. The framework's internal error decoder short-circuits 3xx into `NotModifiedException` before any per-client decoder runs, and the conditional-request machinery replays the cached body transparently.

@@ -135,6 +135,10 @@ shape. The five-constructor exception pattern does not apply to it.
 - Nor does a `412` or a `429`: the same decoder raises `PreconditionFailedException` and
   `RateLimitException` for them first. The rate-limit predicates accept a `429`, but in practice
   they only ever classify a `403`.
+- `RateLimitException` also arrives with nothing sent. `InternalRequestInterceptor` refuses a
+  request once the client's `api.github.com` bucket - set from the `X-RateLimit-*` headers of live
+  responses - has none left before GitHub's reset, so after one primary-limit `403` the rest of the
+  window fails that way. Every contract and corpus method's `@throws` says both.
 - `isPrimaryRateLimit` requires `x-ratelimit-remaining: 0` **and** the message text together. Either
   signal alone moves when GitHub changes its wording or its header set; the conjunction does not.
   Loosening it to one signal makes a permissions 403 read as a rate limit.

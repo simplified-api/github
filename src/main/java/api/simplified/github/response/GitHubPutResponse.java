@@ -11,9 +11,9 @@ import org.jetbrains.annotations.NotNull;
  * {@code PUT /repos/{owner}/{repo}/contents/{path}}.
  *
  * <p>Only the two fields callers typically log for observability are declared: the new blob SHA
- * of the updated file (accessible via {@link ContentRef#getSha()}) and the new commit SHA
- * written to git history (accessible via {@link CommitRef#getSha()}). Every other field in the
- * upstream JSON is silently ignored by Gson's reflective binder.
+ * of the updated file ({@link ContentRef#sha}) and the new commit SHA written to git history
+ * ({@link CommitRef#sha}). Every other field in the upstream JSON is silently ignored by Gson's
+ * reflective binder.
  *
  * @see <a href="https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-or-update-file-contents">
  *      GitHub create or update file contents</a>

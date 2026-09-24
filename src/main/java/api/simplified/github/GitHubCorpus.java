@@ -3,6 +3,7 @@ package api.simplified.github;
 import api.simplified.github.exception.GitHubApiException;
 import api.simplified.github.request.PutContentRequest;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import dev.simplified.client.Client;
 import dev.simplified.client.ClientConfig;
 import dev.simplified.client.exception.NotModifiedException;
@@ -45,8 +46,17 @@ import java.util.Optional;
  * <p>The failures each request method documents are those of the clients {@link Builder#build()}
  * makes, which raise {@link NotModifiedException} for a 3xx status,
  * {@link PreconditionFailedException} for a 412, {@link RateLimitException} for a 429 and
- * {@link GitHubApiException} for any other non-2xx status. A corpus built over contracts the
- * caller supplies raises whatever those contracts raise.
+ * {@link GitHubApiException} for any other non-2xx status. Each client also raises
+ * {@link RateLimitException} before a request is sent, when its rate-limit gate refuses it: the gate
+ * keeps one bucket for {@code api.github.com}, set from the {@code X-RateLimit-Limit},
+ * {@code X-RateLimit-Remaining} and {@code X-RateLimit-Reset} headers of GitHub's live responses,
+ * and refuses every request once the bucket has none left, until the reset GitHub named. A corpus
+ * built over contracts the caller supplies raises whatever those contracts raise.
+ *
+ * <p>A catalogue body that is empty or the JSON literal {@code null} raises
+ * {@link IllegalStateException}, and one that is malformed or does not read as a catalogue object
+ * raises Gson's {@link JsonSyntaxException}; either way the corpus keeps the catalogue it held
+ * before, if any.
  *
  * @see GitHubToken
  * @see ManifestIndex
@@ -143,7 +153,8 @@ public final class GitHubCorpus {
      * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
      * @throws NotModifiedException on a 3xx status
      * @throws PreconditionFailedException on a 412 status
-     * @throws RateLimitException on a 429 status
+     * @throws RateLimitException on a 429 status, or before the request is sent when the client's
+     *         rate-limit gate refuses it
      */
     public @NotNull String read(@NotNull String path) throws GitHubApiException {
         return this.read(path, this.branch);
@@ -161,7 +172,8 @@ public final class GitHubCorpus {
      * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
      * @throws NotModifiedException on a 3xx status
      * @throws PreconditionFailedException on a 412 status
-     * @throws RateLimitException on a 429 status
+     * @throws RateLimitException on a 429 status, or before the request is sent when the client's
+     *         rate-limit gate refuses it
      */
     public @NotNull String read(@NotNull String path, @NotNull String ref) throws GitHubApiException {
         return new String(this.reads.getFileContent(this.owner, this.repo, path, ref), StandardCharsets.UTF_8);
@@ -181,7 +193,8 @@ public final class GitHubCorpus {
      * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
      * @throws NotModifiedException on a 3xx status
      * @throws PreconditionFailedException on a 412 status
-     * @throws RateLimitException on a 429 status
+     * @throws RateLimitException on a 429 status, or before the request is sent when the client's
+     *         rate-limit gate refuses it
      */
     public @NotNull Blob blob(@NotNull String path) throws GitHubApiException {
         byte[] bytes = this.reads.getFileContent(this.owner, this.repo, path, this.branch);
@@ -196,7 +209,8 @@ public final class GitHubCorpus {
      * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
      * @throws NotModifiedException on a 3xx status
      * @throws PreconditionFailedException on a 412 status
-     * @throws RateLimitException on a 429 status
+     * @throws RateLimitException on a 429 status, or before the request is sent when the client's
+     *         rate-limit gate refuses it
      */
     public @NotNull String metadata(@NotNull String path) throws GitHubApiException {
         return this.writes.getFileMetadata(this.owner, this.repo, path, this.branch).getSha();
@@ -214,10 +228,11 @@ public final class GitHubCorpus {
      * @param sha the blob sha the caller expects the file to still carry
      * @param message the commit message
      * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429, including the
-     *         conflict a stale sha raises
+     *         409 or 422 a stale sha raises
      * @throws NotModifiedException on a 3xx status
      * @throws PreconditionFailedException on a 412 status
-     * @throws RateLimitException on a 429 status
+     * @throws RateLimitException on a 429 status, or before the request is sent when the client's
+     *         rate-limit gate refuses it
      */
     public void write(
         @NotNull String path,
@@ -245,7 +260,8 @@ public final class GitHubCorpus {
      * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
      * @throws NotModifiedException on a 3xx status
      * @throws PreconditionFailedException on a 412 status
-     * @throws RateLimitException on a 429 status
+     * @throws RateLimitException on a 429 status, or before the request is sent when the client's
+     *         rate-limit gate refuses it
      */
     public @NotNull String tip() throws GitHubApiException {
         return this.reads.getLatestCommit(this.owner, this.repo, this.branch).getSha();
@@ -262,8 +278,10 @@ public final class GitHubCorpus {
      *         than a 3xx, a 412 or a 429
      * @throws NotModifiedException if either read answers a 3xx status
      * @throws PreconditionFailedException if either read answers a 412 status
-     * @throws RateLimitException if either read answers a 429 status
-     * @throws IllegalStateException if the repository answers a body that is no catalogue
+     * @throws RateLimitException if either read answers a 429 status, or the client's rate-limit gate
+     *         refuses either before it is sent
+     * @throws IllegalStateException if the catalogue body is empty or the JSON literal {@code null}
+     * @throws JsonSyntaxException if the catalogue body is malformed or does not read as a catalogue
      */
     public @NotNull ManifestIndex manifest() throws GitHubApiException {
         ManifestIndex held = this.manifest;
@@ -291,8 +309,10 @@ public final class GitHubCorpus {
      *         than a 3xx, a 412 or a 429
      * @throws NotModifiedException if either read answers a 3xx status
      * @throws PreconditionFailedException if either read answers a 412 status
-     * @throws RateLimitException if either read answers a 429 status
-     * @throws IllegalStateException if the repository answers a body that is no catalogue
+     * @throws RateLimitException if either read answers a 429 status, or the client's rate-limit gate
+     *         refuses either before it is sent
+     * @throws IllegalStateException if the catalogue body is empty or the JSON literal {@code null}
+     * @throws JsonSyntaxException if the catalogue body is malformed or does not read as a catalogue
      */
     public @NotNull String manifestCommit() throws GitHubApiException {
         this.manifest();
@@ -313,8 +333,10 @@ public final class GitHubCorpus {
      *         than a 3xx, a 412 or a 429
      * @throws NotModifiedException if either read answers a 3xx status
      * @throws PreconditionFailedException if either read answers a 412 status
-     * @throws RateLimitException if either read answers a 429 status
-     * @throws IllegalStateException if the repository answers a body that is no catalogue
+     * @throws RateLimitException if either read answers a 429 status, or the client's rate-limit gate
+     *         refuses either before it is sent
+     * @throws IllegalStateException if the catalogue body is empty or the JSON literal {@code null}
+     * @throws JsonSyntaxException if the catalogue body is malformed or does not read as a catalogue
      */
     public synchronized @NotNull Optional<ManifestIndex> poll() throws GitHubApiException {
         String tip = this.tip();
@@ -337,8 +359,10 @@ public final class GitHubCorpus {
      *         412 or a 429
      * @throws NotModifiedException if the catalogue read answers a 3xx status
      * @throws PreconditionFailedException if the catalogue read answers a 412 status
-     * @throws RateLimitException if the catalogue read answers a 429 status
-     * @throws IllegalStateException if the repository answers a body that is no catalogue
+     * @throws RateLimitException if the catalogue read answers a 429 status, or the client's rate-limit
+     *         gate refuses it before it is sent
+     * @throws IllegalStateException if the catalogue body is empty or the JSON literal {@code null}
+     * @throws JsonSyntaxException if the catalogue body is malformed or does not read as a catalogue
      */
     private @NotNull ManifestIndex hold(@NotNull String commit) throws GitHubApiException {
         ManifestIndex fetched = this.gson.fromJson(this.read(this.manifestPath, commit), ManifestIndex.class);

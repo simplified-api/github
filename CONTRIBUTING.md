@@ -193,7 +193,7 @@ ref lookup and is always fresh.
   ./gradlew test
   ```
 
-- **Round-trip coverage** - required when your change adds or renames a DTO field. The Contents and Git Data DTOs carry Gson round-trip tests (`ContentsApiDtoRoundTripTest`, `GitDataDtoRoundTripTest`) built from fixtures lifted out of GitHub's own documentation; a new field without one is a field nothing would notice going missing.
+- **Round-trip coverage** - required when your change adds or renames a DTO field. The Contents, Commits and Git Data DTOs carry Gson round-trip tests (`ContentsApiDtoRoundTripTest`, `CommitsApiDtoRoundTripTest`, `GitDataDtoRoundTripTest`) built from fixtures lifted out of GitHub's own documentation; a new field without one is a field nothing would notice going missing.
 
 - **Classification coverage** - required when your change touches `GitHubApiException`. `GitHubApiExceptionTest` builds a primitive `ErrorContext` per case; add one per new status/header/message combination rather than widening an existing assertion.
 
@@ -273,9 +273,10 @@ api.simplified.github/
 caller or GitHubCorpus
   -> Client<C>.getContract()                # JDK proxy unwrapping RetryableApiException
   -> Feign proxy                            # @RequestLine expansion, Gson encode
-  -> InternalRequestInterceptor             # route rate-limit gate, target URL
+  -> InternalRequestInterceptor             # route rate-limit gate (refusal -> RateLimitException), target URL
   -> CachingFeignClient                     # RFC 7234 fresh-hit short circuit, If-None-Match, 304 replay
   -> Apache HTTP/5                          # pooled, timed (DNS / TCP / TLS)
+  -> InternalResponseInterceptor            # a live response's X-RateLimit-* headers -> the route's bucket
   -> InternalErrorDecoder                   # 3xx -> NotModifiedException, 412 -> PreconditionFailedException,
                                             # 429 -> RateLimitException, else the per-client decoder
   -> GitHubApiException                     # every other non-2xx, body decoded to GitHubErrorResponse

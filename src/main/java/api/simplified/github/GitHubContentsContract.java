@@ -37,6 +37,12 @@ import org.jetbrains.annotations.NotNull;
  * {@link PreconditionFailedException} for a 412 and {@link RateLimitException} for a 429 before its
  * error decoder runs, and hands every other non-2xx status to {@link GitHubApiException}.
  *
+ * <p>The client also raises {@link RateLimitException} before a request is sent, when its rate-limit
+ * gate refuses it. The gate keeps one bucket for {@code api.github.com}, set from the
+ * {@code X-RateLimit-Limit}, {@code X-RateLimit-Remaining} and {@code X-RateLimit-Reset} headers of
+ * GitHub's live responses, and refuses every request once the bucket has none left, until the reset
+ * GitHub named.
+ *
  * @see <a href="https://docs.github.com/en/rest?apiVersion=2022-11-28">GitHub REST API v3</a>
  */
 @Route("api.github.com")
@@ -58,7 +64,8 @@ public interface GitHubContentsContract extends Contract {
      * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
      * @throws NotModifiedException on a 3xx status
      * @throws PreconditionFailedException on a 412 status
-     * @throws RateLimitException on a 429 status
+     * @throws RateLimitException on a 429 status, or before the request is sent when the client's
+     *         rate-limit gate refuses it
      */
     @RequestLine("GET /repos/{owner}/{repo}/commits/{branch}")
     @NotNull GitHubCommit getLatestCommit(
@@ -87,7 +94,8 @@ public interface GitHubContentsContract extends Contract {
      * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
      * @throws NotModifiedException on a 3xx status
      * @throws PreconditionFailedException on a 412 status
-     * @throws RateLimitException on a 429 status
+     * @throws RateLimitException on a 429 status, or before the request is sent when the client's
+     *         rate-limit gate refuses it
      */
     @RequestLine("GET /repos/{owner}/{repo}/contents/{path}?ref={ref}")
     byte @NotNull [] getFileContent(

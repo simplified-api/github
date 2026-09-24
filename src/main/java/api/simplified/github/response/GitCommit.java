@@ -21,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
  * <p>Ships as part of the
  * {@link GitHubGitDataContract} surface - no
  * production code reads or writes it yet. Consumers fetch an existing commit
- * to obtain its tree SHA via {@link TreeRef#getSha()}, then use that as the
+ * to obtain its tree SHA via {@link TreeRef#sha}, then use that as the
  * base tree for a follow-up {@code createTree} call.
  *
  * @see <a href="https://docs.github.com/en/rest/git/commits?apiVersion=2022-11-28">GitHub Git commits</a>
