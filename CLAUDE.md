@@ -83,8 +83,9 @@ git ref lookup.
 ## Optimistic concurrency, two shapes
 
 - Contents: `getFileMetadata` yields the blob SHA, `putFileContent` sends it back, GitHub rejects a
-  stale one as `409`/`422`, which the framework maps to `PreconditionFailedException`. One commit per
-  successful `PUT`, so N files is N commits.
+  stale one as `409`/`422`, which reaches the caller as `GitHubApiException` carrying that status -
+  the framework raises `PreconditionFailedException` only for a `412`. One commit per successful
+  `PUT`, so N files is N commits.
 - Git Data: `updateRef` with `force` null or `false` makes GitHub run the fast-forward check. Same
   guarantee one level up, and N files land as one commit.
 
@@ -111,6 +112,9 @@ shape. The five-constructor exception pattern does not apply to it.
 - A `304` never reaches it. `InternalErrorDecoder` short-circuits 3xx into `NotModifiedException`
   before any per-client decoder runs, and the conditional-request machinery replays the cached body.
   Do not add a not-modified branch here.
+- Nor does a `412` or a `429`: the same decoder raises `PreconditionFailedException` and
+  `RateLimitException` for them first. The rate-limit predicates accept a `429`, but in practice
+  they only ever classify a `403`.
 - `isPrimaryRateLimit` requires `x-ratelimit-remaining: 0` **and** the message text together. Either
   signal alone moves when GitHub changes its wording or its header set; the conjunction does not.
   Loosening it to one signal makes a permissions 403 read as a rate limit.
@@ -133,9 +137,9 @@ shape. The five-constructor exception pattern does not apply to it.
 
 ## Unused by design
 
-Nothing in this repository calls `GitHubGitDataContract`. It ships fully round-trip tested so the
-first consumer does not also have to discover that GitHub's envelope drifted; the pre-bound
-consumer-side façade lives in the `skyblock` sibling as `SkyBlockGitDataContract`.
+Nothing in this repository calls `GitHubGitDataContract`, and no module in the workspace does
+either. It ships fully round-trip tested so the first consumer does not also have to discover that
+GitHub's envelope drifted.
 
 Declare only the fields a consumer reads - Gson ignores the rest, and every declared field is one
 more thing that can drift. Optional upstream fields are boxed and `@Nullable` so a missing `size`

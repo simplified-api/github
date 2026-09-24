@@ -23,11 +23,14 @@ import static org.hamcrest.Matchers.notNullValue;
  * Covers what naming a corpus settles before a request reaches GitHub: the branch every request
  * names, and the contracts every request is sent through.
  *
- * <p>Building one waits on nothing, so these pass with no network. What they pin is that the branch
- * is a value the caller chooses: every request line takes it as a parameter, and a corpus that
- * answered a constant would read identically here while reaching the wrong repository state. A
- * corpus handed the caller's own contracts makes no client and sends its requests through them, so
- * its case issues no request at all.
+ * <p>Three cases build through {@code build()}, which makes both real clients, and each client
+ * starts a DNS lookup and a {@code HEAD} probe of {@code api.github.com} on a background thread
+ * and drops its failure. Building waits on neither, so those cases pass with no network, but
+ * where there is one they reach GitHub. What they pin is that the branch is a value the caller
+ * chooses: every request line takes it as a parameter, and a corpus that answered a constant
+ * would read identically here while reaching the wrong repository state. A corpus handed the
+ * caller's own contracts makes no client and sends its requests through them, so its case
+ * reaches nothing but those contracts.
  */
 class GitHubCorpusBuilderTest {
 
@@ -100,8 +103,8 @@ class GitHubCorpusBuilderTest {
     }
 
     @Test
-    @DisplayName("a corpus builds for a repository, branch and token GitHub would refuse, since none is checked until the first read or write")
-    void buildingChecksNothing() {
+    @DisplayName("a corpus builds for a repository, branch and token GitHub would refuse, without waiting on an answer from GitHub")
+    void buildingWaitsOnNoAnswer() {
         assertThat(
             GitHubCorpus.of("no-such-owner", "no-such-repo")
                 .branch("no-such-branch")

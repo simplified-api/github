@@ -27,7 +27,7 @@ import org.jetbrains.annotations.NotNull;
  *   <li>{@link #getFileMetadata} - read the current blob {@code sha} from the envelope.</li>
  *   <li>{@link #putFileContent} - write a new version with the previously observed {@code sha}
  *       attached to the request body. GitHub rejects with {@code 409} or {@code 422} when the
- *       branch tip has moved since the metadata fetch.</li>
+ *       file no longer carries that {@code sha}.</li>
  * </ol>
  *
  * @see GitHubContentsContract
@@ -63,7 +63,8 @@ public interface GitHubContentsWriteContract extends Contract {
      *
      * <p>The request body must carry {@link PutContentRequest#getSha()} set to the blob SHA
      * previously observed via {@link #getFileMetadata}. A stale SHA produces a {@code 409
-     * Conflict} that the framework maps to {@link PreconditionFailedException}.
+     * Conflict}, which reaches the caller as a {@link GitHubApiException} carrying that status;
+     * the framework raises {@link PreconditionFailedException} only for a {@code 412}.
      *
      * <p>GitHub produces a fresh commit on the target branch for every successful PUT, so a
      * batch that touches N distinct files produces N commits.
