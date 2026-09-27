@@ -6,10 +6,13 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import dev.simplified.client.Client;
 import dev.simplified.client.ClientConfig;
+import dev.simplified.client.cache.ResponseCache;
 import dev.simplified.client.exception.NotModifiedException;
 import dev.simplified.client.exception.PreconditionFailedException;
 import dev.simplified.client.exception.RateLimitException;
 import dev.simplified.client.request.Contract;
+import dev.simplified.collection.Concurrent;
+import dev.simplified.collection.ConcurrentList;
 import dev.simplified.gson.GsonSettings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,9 +42,17 @@ import java.util.Optional;
  * any of that means to a consumer's types is the consumer's, and nothing about a corpus assumes
  * there is one.
  *
- * <p>The catalogue is always read at a commit sha rather than at the branch. A branch read can be
- * answered from the client's response cache for up to a minute after the branch moves, where a
- * commit names content that never changes.
+ * <p>For the clients {@link Builder#build()} makes, a read at the branch - {@link #tip},
+ * {@link #blob}, and {@link #read} of a file at the branch - can be answered from the read client's
+ * response cache for the {@code max-age} GitHub sends with the answer, a minute for the tip and for
+ * a file, and {@link #metadata} from the write client's cache the same way, so a commit another
+ * writer lands can go unseen for up to that long. A {@link #write} drops every answer both clients
+ * cached when it returns or throws, and an answer to a read sent before that drop is not kept, so
+ * the corpus's own reads after its own write reach GitHub; a commit GitHub lands only after the
+ * write gave up on its answer can go unseen as long as another writer's can. A corpus over
+ * contracts the caller supplies drops nothing when it writes. A commit names content that never
+ * changes, so a read at one is never out of date however long a cache holds it, which is why the
+ * catalogue is always read at a commit sha rather than at the branch.
  *
  * <p>The failures each request method documents are those of the clients {@link Builder#build()}
  * makes, which raise {@link NotModifiedException} for a 3xx status,
@@ -76,6 +87,12 @@ public final class GitHubCorpus {
     private final @NotNull GitHubContentsWriteContract writes;
 
     /**
+     * The response caches of the two clients {@link Builder#build()} makes, which every
+     * {@link #write} drops; empty for a corpus over contracts the caller supplies.
+     */
+    private final @NotNull ConcurrentList<ResponseCache> caches;
+
+    /**
      * The catalogue held from the last fetch, or {@code null} before one.
      */
     private volatile @Nullable ManifestIndex manifest;
@@ -85,30 +102,22 @@ public final class GitHubCorpus {
      */
     private volatile @Nullable String manifestCommit;
 
-    private GitHubCorpus(@NotNull Builder builder) {
-        this(builder, builder.token == null ? GitHubAuth.unauthenticated() : builder.token.auth());
-    }
-
-    private GitHubCorpus(@NotNull Builder builder, @NotNull GitHubAuth auth) {
-        this(
-            builder,
-            contract(GitHubContentsContract.class, RAW_ACCEPT, auth, builder.gsonSettings),
-            contract(GitHubContentsWriteContract.class, JSON_ACCEPT, auth, GsonSettings.defaults())
-        );
-    }
-
     /**
      * Constructs a corpus answering every request through the given contracts, whether the builder
-     * made them or the caller supplied them.
+     * made them or the caller supplied them, and dropping the given response caches after every
+     * write.
      *
      * @param builder the repository, branch, catalogue path and parser settings
      * @param reads the contract files and the branch tip are read through
      * @param writes the contract blob shas are read and files are written through
+     * @param caches the response caches of the clients behind the two contracts, empty when the
+     *        caller supplied the contracts
      */
-    private GitHubCorpus(
+    GitHubCorpus(
         @NotNull Builder builder,
         @NotNull GitHubContentsContract reads,
-        @NotNull GitHubContentsWriteContract writes
+        @NotNull GitHubContentsWriteContract writes,
+        @NotNull ConcurrentList<ResponseCache> caches
     ) {
         this.owner = builder.owner;
         this.repo = builder.repo;
@@ -117,6 +126,7 @@ public final class GitHubCorpus {
         this.gson = builder.gsonSettings.create();
         this.reads = reads;
         this.writes = writes;
+        this.caches = caches;
     }
 
     /**
@@ -145,8 +155,10 @@ public final class GitHubCorpus {
     /**
      * Reads the text of one file at the branch.
      *
-     * <p>The client's response cache can answer this from before the branch moved, for up to a
-     * minute. A caller that needs the text exactly as some commit holds it reads at that commit.
+     * <p>The read client's response cache can answer this for the {@code max-age} GitHub sends
+     * with the file, a minute, so a commit another writer lands can go unseen for that long; this
+     * corpus's own {@link #write} drops the cache, so a read after it reaches GitHub. A caller
+     * that needs the text exactly as some commit holds it reads at that commit.
      *
      * @param path the repo-root-relative file path
      * @return the file content, decoded as UTF-8
@@ -164,7 +176,8 @@ public final class GitHubCorpus {
      * Reads the text of one file at a commit or a ref.
      *
      * <p>A commit sha names content that never changes, so a read at one answers the same text
-     * however long the client's response cache holds it.
+     * however long the read client's response cache holds it. A read at a branch or a tag can be
+     * answered from that cache as {@link #read(String)} describes.
      *
      * @param path the repo-root-relative file path
      * @param ref the commit sha, branch or tag to read at
@@ -184,9 +197,13 @@ public final class GitHubCorpus {
      *
      * <p>The sha is computed from the bytes the text was decoded from, the way git names a blob, so
      * the two always describe the same content and a write under the sha lands only over the body
-     * the caller read. A body the client's response cache replays from before the branch moved
+     * the caller read.
+     *
+     * <p>The read client's response cache can answer this for the {@code max-age} GitHub sends
+     * with the file, a minute. A body it replays from before a commit another writer landed
      * carries that older body's sha, and GitHub refuses a write under it rather than letting it
-     * overwrite the newer commit.
+     * overwrite the newer commit. This corpus's own {@link #write} drops the cache, so a blob read
+     * after it reaches GitHub.
      *
      * @param path the repo-root-relative file path
      * @return the file's text and the blob sha of its bytes, read at the branch
@@ -203,6 +220,11 @@ public final class GitHubCorpus {
 
     /**
      * Reads the blob sha of one file, which is the token a write against it has to carry.
+     *
+     * <p>The write client's response cache can answer this for the {@code max-age} GitHub sends
+     * with the file, a minute. A sha it replays from before a commit another writer landed names
+     * the older blob, and GitHub refuses a write under it. This corpus's own {@link #write} drops
+     * the cache, so a read after it reaches GitHub.
      *
      * @param path the repo-root-relative file path
      * @return the git blob sha at the branch tip
@@ -223,6 +245,13 @@ public final class GitHubCorpus {
      * has moved since that sha was read, which is what makes a lost update a failure rather than a
      * silent overwrite.
      *
+     * <p>When the write returns or throws, the corpus drops every answer both of its clients
+     * cached, so its reads after the write - the tip, a file or a blob at the branch, a blob sha -
+     * reach GitHub rather than answering from before the commit, a write GitHub committed before
+     * its answer was lost included; a commit that lands only after the write gave up on its answer
+     * can go unseen, as another writer's can, for up to the {@code max-age} GitHub sends. A corpus
+     * over contracts the caller supplies drops nothing.
+     *
      * @param path the repo-root-relative file path
      * @param content the text to commit
      * @param sha the blob sha the caller expects the file to still carry
@@ -240,21 +269,29 @@ public final class GitHubCorpus {
         @NotNull String sha,
         @NotNull String message
     ) throws GitHubApiException {
-        this.writes.putFileContent(
-            this.owner,
-            this.repo,
-            path,
-            PutContentRequest.builder()
-                .message(message)
-                .content(Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8)))
-                .sha(sha)
-                .branch(this.branch)
-                .build()
-        );
+        try {
+            this.writes.putFileContent(
+                this.owner,
+                this.repo,
+                path,
+                PutContentRequest.builder()
+                    .message(message)
+                    .content(Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8)))
+                    .sha(sha)
+                    .branch(this.branch)
+                    .build()
+            );
+        } finally {
+            this.caches.forEach(ResponseCache::invalidateAll);
+        }
     }
 
     /**
-     * Reads the commit the branch currently points at.
+     * Reads the commit the branch points at.
+     *
+     * <p>The read client's response cache can answer this for the {@code max-age} GitHub sends
+     * with the tip, a minute, so a commit another writer lands can go unseen for that long; this
+     * corpus's own {@link #write} drops the cache, so a tip read after it reaches GitHub.
      *
      * @return the tip commit sha
      * @throws GitHubApiException on a non-2xx status other than a 3xx, a 412 or a 429
@@ -270,8 +307,9 @@ public final class GitHubCorpus {
     /**
      * The corpus catalogue, fetched once and held until {@link #poll()} replaces it.
      *
-     * <p>The first fetch reads the branch tip and then the catalogue at that commit, and holds both,
-     * so {@link #manifestCommit()} names the commit the catalogue came from.
+     * <p>The first fetch reads the branch tip, as {@link #tip()} reads it, and then the catalogue at
+     * that commit, and holds both, so {@link #manifestCommit()} names the commit the catalogue came
+     * from.
      *
      * @return the catalogue
      * @throws GitHubApiException if the tip or the catalogue read answers a non-2xx status other
@@ -302,7 +340,7 @@ public final class GitHubCorpus {
      * The branch tip the held catalogue was read at, fetching the catalogue first when none is held.
      *
      * <p>A file read at this commit comes out of the same tree the held catalogue did, however long
-     * the client's response cache keeps the answer.
+     * the read client's response cache keeps the answer.
      *
      * @return the commit sha
      * @throws GitHubApiException if the tip or the catalogue read answers a non-2xx status other
@@ -322,11 +360,14 @@ public final class GitHubCorpus {
     /**
      * Asks whether the branch has moved since the held catalogue was read.
      *
-     * <p>One request rules out the whole corpus: a tip that has not moved cannot have moved any file
-     * under it. When it has, the catalogue is read at the new tip - a commit, which the client's
-     * response cache cannot answer from before the move - and held with that tip. The answer is a
-     * catalogue rather than an instruction: what to do about a change belongs to whoever consumes it,
-     * never to whoever noticed.
+     * <p>One tip read rules out the whole corpus: a tip that has not moved cannot have moved any
+     * file under it. The tip is read as {@link #tip()} reads it, so a commit another writer lands
+     * can go unseen for up to the {@code max-age} GitHub sends with the tip, while a poll after
+     * this corpus's own {@link #write} reaches GitHub. When the tip has moved, the catalogue is read
+     * at the new tip - a commit, which names content that never changes, so no cached answer is
+     * from before the move - and held with that tip. The answer is a catalogue rather than an
+     * instruction: what to do about a change belongs to whoever consumes it, never to whoever
+     * noticed.
      *
      * @return the new catalogue, empty when the branch is still at the tip the held one was read at
      * @throws GitHubApiException if the tip or the catalogue read answers a non-2xx status other
@@ -378,16 +419,23 @@ public final class GitHubCorpus {
     }
 
     /**
-     * Builds one Feign proxy with the auth, media type, API version and error decoding every call
+     * Builds one client with the auth, media type, API version and error decoding every call
      * against this API needs.
+     *
+     * @param contract the contract the client proxies
+     * @param accept the {@code Accept} media type every request carries
+     * @param auth the source of the {@code Authorization} header
+     * @param gsonSettings the settings a response is decoded with
+     * @param <C> the contract type
+     * @return the client
      */
-    private static <C extends Contract> @NotNull C contract(
+    private static <C extends Contract> @NotNull Client<C> client(
         @NotNull Class<C> contract,
         @NotNull String accept,
         @NotNull GitHubAuth auth,
         @NotNull GsonSettings gsonSettings
     ) {
-        Client<C> client = Client.create(
+        return Client.create(
             ClientConfig.builder(contract, gsonSettings)
                 .withHeader("Accept", accept)
                 .withHeader("X-GitHub-Api-Version", API_VERSION)
@@ -395,8 +443,6 @@ public final class GitHubCorpus {
                 .withErrorDecoder(GitHubApiException::new)
                 .build()
         );
-
-        return client.getContract();
     }
 
     /**
@@ -498,10 +544,22 @@ public final class GitHubCorpus {
          * on a background thread, whose failure is dropped, so an unreachable GitHub does not stop
          * a session being configured - the first read or write is what reports it.
          *
+         * <p>Each client keeps a response cache, and every {@link GitHubCorpus#write write} drops
+         * both.
+         *
          * @return the corpus
          */
         public @NotNull GitHubCorpus build() {
-            return new GitHubCorpus(this);
+            GitHubAuth auth = this.token == null ? GitHubAuth.unauthenticated() : this.token.auth();
+            Client<GitHubContentsContract> reads = client(GitHubContentsContract.class, RAW_ACCEPT, auth, this.gsonSettings);
+            Client<GitHubContentsWriteContract> writes = client(GitHubContentsWriteContract.class, JSON_ACCEPT, auth, GsonSettings.defaults());
+
+            return new GitHubCorpus(
+                this,
+                reads.getContract(),
+                writes.getContract(),
+                Concurrent.newUnmodifiableList(reads.getResponseCache(), writes.getResponseCache())
+            );
         }
 
         /**
@@ -510,11 +568,13 @@ public final class GitHubCorpus {
          *
          * <p>The two contracts replace the two clients, and with them everything a client carries:
          * the {@code Accept} media type each is pinned to, the API version header, the settings a
-         * response is decoded with, the error decoding into {@link GitHubApiException}, and the
-         * auth. The token named on this builder is not applied to them - the contracts carry
-         * whatever auth they need. The repository, the branch, the catalogue path and the settings
-         * the catalogue is parsed with still come from this builder, and no client is made, so
-         * building starts no probe of {@code api.github.com}.
+         * response is decoded with, the error decoding into {@link GitHubApiException}, the
+         * response cache, and the auth. The token named on this builder is not applied to them -
+         * the contracts carry whatever auth they need. The repository, the branch, the catalogue
+         * path and the settings the catalogue is parsed with still come from this builder, and no
+         * client is made, so building starts no probe of {@code api.github.com}. A
+         * {@link GitHubCorpus#write write} drops nothing: a caller whose contracts answer from a
+         * cache keeps that cache in step with the corpus's writes itself.
          *
          * <p>This serves a caller answering the requests itself - an in-memory double, a recording
          * or caching proxy, a gateway. Whatever answers them answers as the clients do:
@@ -529,7 +589,7 @@ public final class GitHubCorpus {
             @NotNull GitHubContentsContract reads,
             @NotNull GitHubContentsWriteContract writes
         ) {
-            return new GitHubCorpus(this, reads, writes);
+            return new GitHubCorpus(this, reads, writes, Concurrent.newUnmodifiableList());
         }
 
     }

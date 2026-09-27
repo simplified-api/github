@@ -31,10 +31,14 @@ names it afresh from a random UUID.
 A corpus test hands `GitHubCorpus.Builder.build(reads, writes)` contracts answered from memory; that
 terminal makes no client, so such a corpus makes no request at all, and the builder's token is never
 applied to the contracts it is handed. A consumer's tests put a corpus over their own doubles
-through the same public terminal. Three cases in `GitHubCorpusBuilderTest` build through `build()`,
-which makes both real clients: each builds its Feign proxy and starts a background DNS lookup and
-`HEAD` probe of `api.github.com` whose failure is dropped, so the suite passes offline but is not
-silent on the wire.
+through the same public terminal. The write-drop cases in `GitHubCorpusWriteTest` go through the
+package-private `GitHubCorpus` constructor instead, handing it the response caches a write drops
+beside two contracts, each a Feign proxy assembled as `Client` assembles its own - a
+`CachingFeignClient` and an `InternalResponseDecoder` over one `ResponseCache` - over a transport
+answering from memory, so they make no request either. Three cases in `GitHubCorpusBuilderTest`
+build through `build()`, which makes both real clients: each builds its Feign proxy and starts a
+background DNS lookup and `HEAD` probe of `api.github.com` whose failure is dropped, so the suite
+passes offline but is not silent on the wire.
 
 That also bounds what green means: the suite proves the declared shapes parse, never that the
 endpoint still answers them. A `@RequestLine`, an `Accept` requirement or a return type is verified
@@ -90,8 +94,11 @@ the branch a write commits to. `GitHubCorpus` hands its one branch to the tip re
 and the write, so the concurrency token is read off the branch it is checked against.
 
 `GitHubCorpus` reads its catalogue at a commit sha - the tip it just resolved - and never at the
-branch. A branch read can be replayed from the client's response cache for up to a minute after the
-branch moves; a commit names content that never changes. `poll()` compares the tip against the tip
+branch. A branch read can be replayed from the client's response cache for up to a minute after
+another writer moves the branch; a commit names content that never changes. The corpus's own `write`
+drops both clients' caches when it returns or throws, so its own move is not replayed - unless
+GitHub lands the commit only after the write gave up on its answer, which counts as another
+writer's. A corpus over caller-supplied contracts drops nothing. `poll()` compares the tip against the tip
 the held catalogue was read at, not against the catalogue's `revision`, which the generator records
 before the catalogue is committed and so never equals a tip.
 
@@ -185,6 +192,9 @@ stays distinguishable from `0`.
   `Authorization` header can reach the tree.
 - Do not add a not-modified return type to any contract method. Conditional requests are handled
   below the contract and a `304` is never a value a method sees.
-- Do not open `GitHubCorpus`'s constructors. A caller putting its own contracts under a corpus uses
-  `Builder.build(reads, writes)`, which is public API; a constructor a consumer reaches by sharing
-  the package breaks in that consumer's compile rather than here.
+- Do not open `GitHubCorpus`'s constructor further. It is package-private for one reason, the
+  write-drop test seam: `build()` hides the two clients it makes and always targets
+  `api.github.com`, and `build(reads, writes)` holds no cache, so no other shape lets a test observe
+  a write dropping both clients' response caches offline. A caller putting its own contracts under a
+  corpus uses `Builder.build(reads, writes)`, which is public API; a constructor a consumer reaches
+  by sharing the package breaks in that consumer's compile rather than here.
