@@ -32,7 +32,7 @@ dependencies {
     testImplementation(libs.junit.platform.launcher)
 
     // Simplified Libraries (github.com/simplified-dev)
-    api("com.github.simplified-dev:client") { version { strictly("daefea3") } }
+    api("com.github.simplified-dev:client") { version { strictly("b810558") } }
     api("com.github.simplified-dev:gson-extras") { version { strictly("3ac0d4f") } }
     api("com.github.simplified-dev:collections") { version { strictly("4029e80") } }
 
